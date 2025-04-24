@@ -13,7 +13,8 @@ public class socketTest {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             out.println("hello server");
-            System.out.println("Server response: " + in.readLine());
+            System.out.println("[Client] sent : hello server");
+            System.out.println("[Client] Server response: " + in.readLine());
             socket.close();
         } catch (IOException e) {
             throw new RuntimeException(e);

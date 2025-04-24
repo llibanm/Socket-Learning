@@ -14,7 +14,7 @@ public class socketServerTest {
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 
             String line = in.readLine();
-            System.out.println("Recived "+line);
+            System.out.println("[Server] Recieved : "+line);
             out.println("Hello from server");
             socket.close();
         } catch (IOException e) {
