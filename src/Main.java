@@ -9,6 +9,6 @@ import java.net.Socket;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(8000);
+        System.out.println("Hello World");
     }
 }
