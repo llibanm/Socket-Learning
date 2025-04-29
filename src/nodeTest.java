@@ -1,10 +1,11 @@
-package Shuffle;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class node {
+public class nodeTest {
 
     private Socket serverPort; //port du node qui va servir de server
     private int intPort;
@@ -19,7 +20,7 @@ public class node {
     private BufferedReader inServer;
     private PrintWriter outServer;
 
-    public node(int monPort, String address, int portAutre){
+    public nodeTest(int monPort, String address, int portAutre){
         this.intPort=monPort;
         this.addressAutrePort = address;
         this.intPortAutreNode = portAutre;
@@ -106,7 +107,7 @@ public class node {
         String address = args[1];
         int portPair = Integer.parseInt(args[2]);
 
-        node node = new node(monPort, address, portPair);
+        nodeTest node = new nodeTest(monPort, address, portPair);
         node.demarrer();
 
     }
