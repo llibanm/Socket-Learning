@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -20,10 +21,19 @@ public class nodeTest {
     private BufferedReader inServer;
     private PrintWriter outServer;
 
+    //node attempt to connect to another node
+    int attempts;
+    int attemptsMax;
+    boolean success;
+
     public nodeTest(int monPort, String address, int portAutre){
         this.intPort=monPort;
         this.addressAutrePort = address;
         this.intPortAutreNode = portAutre;
+
+        attempts = 0;
+        attemptsMax = 15;
+        success = false;
     }
 
     public void demarrer(){
@@ -38,7 +48,6 @@ public class nodeTest {
             Thread clientThread = new Thread(this::clientStart);
 
             serverThread.start();
-            Thread.sleep(2000);
             clientThread.start();
 
             serverThread.join();
@@ -54,7 +63,6 @@ public class nodeTest {
 
         try{
 
-            System.out.println("[SERVER] : server started on port "+this.intPort);
             System.out.println("[SERVER] : Awating incoming connection");
             this.serverPort = server.accept();
 
@@ -77,12 +85,42 @@ public class nodeTest {
 
     public void clientStart(){
         try{
-            System.out.println("[CLIENT] : client connectingt to "+this.addressAutrePort +":"+this.intPortAutreNode);
-            clientPort = new Socket(addressAutrePort, intPortAutreNode);
+            System.out.println("[CLIENT] : client started on port "+this.intPort);
+            System.out.println("[CLIENT] : client connecting to "+this.addressAutrePort +":"+this.intPortAutreNode);
 
-            inClient = new BufferedReader(new InputStreamReader(clientPort.getInputStream()));
-            outClient = new PrintWriter(clientPort.getOutputStream(), true);
-            System.out.println("[CLIENT] : Client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
+
+
+            while(!success && attempts<attemptsMax){
+                try {
+                    clientPort = new Socket(addressAutrePort, intPortAutreNode);
+                    success = true;
+                    inClient = new BufferedReader(new InputStreamReader(clientPort.getInputStream()));
+                    outClient = new PrintWriter(clientPort.getOutputStream(), true);
+                    System.out.println("[CLIENT] : client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
+                }catch (ConnectException e){
+                    attempts++;
+                    System.out.println("[CLIENT] : Attemps "+attempts+" failed out of  "+attemptsMax+" to client connect to "+this.addressAutrePort);
+
+                    if(attempts<attemptsMax){
+                        System.out.println("[CLIENT] : Launching another attempt in 1 seconds");
+                        Thread.sleep(1000);
+                    }
+
+
+                }
+            }
+
+//            clientPort = new Socket(addressAutrePort, intPortAutreNode);
+//
+
+//            System.out.println("[CLIENT] : Client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
+            if(!success){
+                System.out.println("[CLIENT] : client failed to connect to "+this.addressAutrePort);
+                System.out.println("[CLIENT] : Closing connection attemps");
+                System.out.println("[CLIENT] : client exiting");
+
+                return;
+            }
 
             System.out.println("[CLIENT] : Now ending connection");
             inClient.close();
@@ -90,7 +128,7 @@ public class nodeTest {
             clientPort.close();
 
         }
-        catch (IOException e){
+        catch (IOException | InterruptedException e){
             e.printStackTrace();
         }
     }

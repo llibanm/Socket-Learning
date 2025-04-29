@@ -76,7 +76,7 @@ public class node {
 
     public void clientStart(){
         try{
-            System.out.println("[CLIENT] : client connectingt to "+this.addressAutrePort +":"+this.intPortAutreNode);
+            System.out.println("[CLIENT] : client connecting to "+this.addressAutrePort +":"+this.intPortAutreNode);
             clientPort = new Socket(addressAutrePort, intPortAutreNode);
 
             inClient = new BufferedReader(new InputStreamReader(clientPort.getInputStream()));
