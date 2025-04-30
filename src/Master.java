@@ -22,7 +22,7 @@ public class Master {
         try {
             for (int i = 0; i < myServerSocketsArray.length; i++) {
                 myServerSocketsArray[i] = new myServerSocket(i,2000+i,"localhost");
-                myThreadArray[i] = new Thread((Runnable) myServerSocketsArray[i]);
+                myThreadArray[i] = new Thread(myServerSocketsArray[i]);
                 myThreadArray[i].start();
             }
 
