@@ -39,43 +39,45 @@ public class myServerSocket implements Runnable {
             out = new PrintWriter(socket.getOutputStream(), true);
 
             printMessage("[SERVER "+socketID+"] : accepted connection from address :"+socket.getInetAddress()+" on port "+socket.getPort());
-            printMessage("[SERVER "+socketID+"] : now ending connection");
 
-            in.close();
-            out.close();
-            socket.close();
-            serverSocket.close();
+            String clientOutput;
+            String serverInput;
 
-        } catch (IOException e) {
+            while(true){
+                clientOutput = in.readLine();
+                System.out.println("[SERVER "+socketID+"] : received message from client: "+clientOutput);
+
+                switch(clientOutput){
+                    case "QUIT","EXIT":
+                        System.out.println("[SERVER "+socketID+"] : server quit");
+                        System.out.println("[SERVER "+socketID+"] : Notifying client to quit");
+
+                        out.println("QUIT");
+                        Thread.sleep(500); // waiting a bit for client to quit
+
+                        printMessage("[SERVER "+socketID+"] : now ending connection");
+                        in.close();
+                        out.close();
+                        socket.close();
+                        serverSocket.close();
+                        break;
+
+                    default:
+                        System.out.println("[SERVER "+socketID+"] : received message from client: "+clientOutput);
+                        break;
+                }
+
+                if(clientOutput.equals("EXIT")||clientOutput.equals("QUIT")){
+                    break;
+                }
+
+            }
+
+
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
-
-//    public void demarrer(){
-//        try {
-//            this.serverSocket = new ServerSocket(this.port);
-//
-//            printMessage("[SERVER "+socketID+"] : server connected to "+this.myAddress+":"+this.port);
-//            printMessage("[SERVER "+socketID+"] : server awaiting connection");
-//
-//            this.socket = serverSocket.accept();
-//
-//            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            out = new PrintWriter(socket.getOutputStream(), true);
-//
-//            printMessage("[SERVER "+socketID+"] : accepted connection from address :"+socket.getInetAddress()+" on port "+socket.getPort());
-//            printMessage("[SERVER "+socketID+"] : now ending connection");
-//
-//            in.close();
-//            out.close();
-//            socket.close();
-//            serverSocket.close();
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//    }
 
     public void printMessage(String msg){
         System.out.println(msg);
