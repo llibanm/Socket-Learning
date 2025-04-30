@@ -5,7 +5,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class myServerSocket {
+public class myServerSocket implements Runnable {
+
 
     private int port;
     private int socketID; // Id de l'instance de myServerSocket
@@ -24,7 +25,8 @@ public class myServerSocket {
         this.myAddress = address;
     }
 
-    public void demarrer(){
+    @Override
+    public void run() {
         try {
             this.serverSocket = new ServerSocket(this.port);
 
@@ -47,8 +49,33 @@ public class myServerSocket {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
+
+//    public void demarrer(){
+//        try {
+//            this.serverSocket = new ServerSocket(this.port);
+//
+//            printMessage("[SERVER "+socketID+"] : server connected to "+this.myAddress+":"+this.port);
+//            printMessage("[SERVER "+socketID+"] : server awaiting connection");
+//
+//            this.socket = serverSocket.accept();
+//
+//            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//            out = new PrintWriter(socket.getOutputStream(), true);
+//
+//            printMessage("[SERVER "+socketID+"] : accepted connection from address :"+socket.getInetAddress()+" on port "+socket.getPort());
+//            printMessage("[SERVER "+socketID+"] : now ending connection");
+//
+//            in.close();
+//            out.close();
+//            socket.close();
+//            serverSocket.close();
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
 
     public void printMessage(String msg){
         System.out.println(msg);
@@ -68,6 +95,7 @@ public class myServerSocket {
 
     public static void main(String[] args) {
         myServerSocket s = new myServerSocket(0,3000,"localhost");
-        s.demarrer();
+       // s.demarrer();
+
     }
 }
