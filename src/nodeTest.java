@@ -85,8 +85,8 @@ public class nodeTest {
 
     public void clientStart(){
         try{
-            System.out.println("[CLIENT] : client started on port "+this.intPort);
-            System.out.println("[CLIENT] : client connecting to "+this.addressAutrePort +":"+this.intPortAutreNode);
+            System.out.println("[CLIENT] : core_system.client started on port "+this.intPort);
+            System.out.println("[CLIENT] : core_system.client connecting to "+this.addressAutrePort +":"+this.intPortAutreNode);
 
 
 
@@ -96,10 +96,10 @@ public class nodeTest {
                     success = true;
                     inClient = new BufferedReader(new InputStreamReader(clientPort.getInputStream()));
                     outClient = new PrintWriter(clientPort.getOutputStream(), true);
-                    System.out.println("[CLIENT] : client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
+                    System.out.println("[CLIENT] : core_system.client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
                 }catch (ConnectException e){
                     attempts++;
-                    System.out.println("[CLIENT] : Attemps "+attempts+" failed out of  "+attemptsMax+" to client connect to "+this.addressAutrePort);
+                    System.out.println("[CLIENT] : Attemps "+attempts+" failed out of  "+attemptsMax+" to core_system.client connect to "+this.addressAutrePort);
 
                     if(attempts<attemptsMax){
                         System.out.println("[CLIENT] : Launching another attempt in 1 seconds");
@@ -115,9 +115,9 @@ public class nodeTest {
 
 //            System.out.println("[CLIENT] : Client connected to "+this.addressAutrePort +":"+this.intPortAutreNode);
             if(!success){
-                System.out.println("[CLIENT] : client failed to connect to "+this.addressAutrePort);
+                System.out.println("[CLIENT] : core_system.client failed to connect to "+this.addressAutrePort);
                 System.out.println("[CLIENT] : Closing connection attemps");
-                System.out.println("[CLIENT] : client exiting");
+                System.out.println("[CLIENT] : core_system.client exiting");
 
                 return;
             }

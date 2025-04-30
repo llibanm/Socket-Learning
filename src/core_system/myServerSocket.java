@@ -1,3 +1,5 @@
+package core_system;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,7 +11,7 @@ public class myServerSocket implements Runnable {
 
 
     private int port;
-    private int socketID; // Id de l'instance de myServerSocket
+    private int socketID; // Id de l'instance de core_system.myServerSocket
 
     private Socket socket;
     private ServerSocket serverSocket;
@@ -45,15 +47,15 @@ public class myServerSocket implements Runnable {
 
             while(true){
                 clientOutput = in.readLine();
-                System.out.println("[SERVER "+socketID+"] : received message from client: "+clientOutput);
+                System.out.println("[SERVER "+socketID+"] : received message from core_system.client: "+clientOutput);
 
                 switch(clientOutput){
                     case "QUIT","EXIT":
                         System.out.println("[SERVER "+socketID+"] : server quit");
-                        System.out.println("[SERVER "+socketID+"] : Notifying client to quit");
+                        System.out.println("[SERVER "+socketID+"] : Notifying core_system.client to quit");
 
                         out.println("QUIT");
-                        Thread.sleep(500); // waiting a bit for client to quit
+                        Thread.sleep(500); // waiting a bit for core_system.client to quit
 
                         printMessage("[SERVER "+socketID+"] : now ending connection");
                         in.close();
@@ -63,7 +65,7 @@ public class myServerSocket implements Runnable {
                         break;
 
                     default:
-                        System.out.println("[SERVER "+socketID+"] : received message from client: "+clientOutput);
+                        System.out.println("[SERVER "+socketID+"] : received message from core_system.client: "+clientOutput);
                         break;
                 }
 
