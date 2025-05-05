@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class MyServerSelector  {
+public class MyServerSelector implements Runnable  {
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
@@ -70,6 +70,7 @@ public class MyServerSelector  {
 //        clientChannel.write(writeBuffer);
     }
 
+    @Override
     public void run() {
         try {
             selector = Selector.open();
