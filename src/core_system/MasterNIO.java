@@ -4,14 +4,14 @@ package core_system;
 
 public class MasterNIO {
 
-    private MyServerSocket serverChannel;
+    private MyServerSelector serverChannel;
     private Thread myThread;
     private final int port = 2000;
     public MasterNIO() {}
 
     public void start(int port) {
         try {
-            serverChannel = new MyServerSocket(port);
+            serverChannel = new MyServerSelector(port);
             myThread = new Thread(serverChannel);
             myThread.start();
             myThread.join();
@@ -29,7 +29,7 @@ public class MasterNIO {
         master.start(master.getPort());
     }
 
-    public MyServerSocket getServerChannel() {
+    public MyServerSelector getServerChannel() {
         return serverChannel;
     }
 }

@@ -11,14 +11,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class MyServerSocket implements Runnable {
+public class MyServerSelector implements Runnable {
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
     private int port;
     private Set<SocketChannel> newConnections;
 
-    public MyServerSocket(int port) {
+    public MyServerSelector(int port) {
         this.port = port;
         newConnections = new HashSet<SocketChannel>();
     }
