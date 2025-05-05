@@ -37,7 +37,7 @@ public class client {
 
 
            while(true) {
-
+            workerInput = in.readLine();
 
                switch(workerInput) {
                    case "QUIT","EXIT":

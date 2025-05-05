@@ -1,43 +1,36 @@
 package core_system;
 
+
+
 public class Master {
 
-    private myServerSocket[] myServerSocketsArray; // each socket will be a server
-    private Thread[] myThreadArray; // each socket will have its own thread to be executed on
-
-
-    public Master(int numberOfServers) {
-        myServerSocketsArray = new myServerSocket[numberOfServers];
-        myThreadArray = new Thread[numberOfServers];
+    private MyServerSocket serverChannel;
+    private Thread myThread;
+    public Master(int port) {
     }
 
-    public void startServer() {
+    public void start(int port) {
         try {
-            for (int i = 0; i < myServerSocketsArray.length; i++) {
-                myServerSocketsArray[i] = new myServerSocket(i,2000+i,"localhost");
-                myThreadArray[i] = new Thread(myServerSocketsArray[i]);
-                myThreadArray[i].start();
-            }
-
-            for (int i = 0; i < myThreadArray.length; i++) {
-                myThreadArray[i].join();
-            }
-        } catch (Exception e) {
+            serverChannel = new MyServerSocket(port);
+            myThread = new Thread(serverChannel);
+            myThread.start();
+            myThread.join();
+        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-
-    public myServerSocket[] getMyServerSocketsArray() {
-        return myServerSocketsArray;
-    }
-
-    public Thread[] getMyThreadArray() {
-        return myThreadArray;
-    }
-
     public static void main(String[] args) {
-        Master master = new Master(5);
-        master.startServer();
+        if(args.length != 2) {
+            System.out.println("[Server] Usage: Master <port>");
+        }
+        int port = Integer.parseInt(args[0]);
+
+        Master master = new Master(port);
+        master.start(port);
+    }
+
+    public MyServerSocket getServerChannel() {
+        return serverChannel;
     }
 }
