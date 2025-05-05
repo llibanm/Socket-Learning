@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.Socket;
 
 public class Worker implements Runnable {
@@ -35,7 +36,9 @@ public class Worker implements Runnable {
             outClient.close();
             socket.close();
             System.out.println("[CLIENT:"+getID()+"] : Client disconnected");
-        }catch (IOException | InterruptedException e){
+        } catch (ConnectException e){
+            System.out.println("[CLIENT:"+getID()+"] : Error connecting to server, port: " + port+" may not exist");
+        } catch (IOException | InterruptedException e){
             e.printStackTrace();
         }
 
