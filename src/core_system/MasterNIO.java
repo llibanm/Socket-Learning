@@ -5,19 +5,17 @@ package core_system;
 public class MasterNIO {
 
     private MyServerSelector serverChannel;
-    private Thread myThread;
     private final int port = 2000;
+
+
+    private Worker[] workersTab;
+    private Thread[] threadsTab;
+
     public MasterNIO() {}
 
     public void start(int port) {
-        try {
             serverChannel = new MyServerSelector(port);
-            myThread = new Thread(serverChannel);
-            myThread.start();
-            myThread.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+            serverChannel.run();
     }
 
     public int getPort(){
