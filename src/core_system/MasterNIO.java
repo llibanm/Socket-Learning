@@ -2,12 +2,12 @@ package core_system;
 
 
 
-public class Master {
+public class MasterNIO {
 
     private MyServerSocket serverChannel;
     private Thread myThread;
     private final int port = 2000;
-    public Master() {}
+    public MasterNIO() {}
 
     public void start(int port) {
         try {
@@ -25,7 +25,7 @@ public class Master {
     }
 
     public static void main(String[] args) {
-        Master master = new Master();
+        MasterNIO master = new MasterNIO();
         master.start(master.getPort());
     }
 

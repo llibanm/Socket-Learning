@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class Worker implements Runnable {
+public class WorkerNIO implements Runnable {
 
     private final int ID;
     private final int port = 2000;
@@ -14,7 +14,7 @@ public class Worker implements Runnable {
 
     private BufferedReader inClient;
     private PrintWriter outClient;
-    public Worker(int ID){
+    public WorkerNIO(int ID){
         this.ID = ID;
     }
 
@@ -47,7 +47,7 @@ public class Worker implements Runnable {
 
     public static void main(String[] args) {
         try {
-            Worker worker = new Worker(0);
+            WorkerNIO worker = new WorkerNIO(0);
             Thread thread = new Thread(worker);
             thread.start();
             thread.join();
