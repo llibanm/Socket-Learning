@@ -7,6 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -15,9 +16,11 @@ public class MyServerSocket implements Runnable {
     private ServerSocketChannel serverChannel;
     private Selector selector;
     private int port;
+    private Set<SocketChannel> newConnections;
 
     public MyServerSocket(int port) {
         this.port = port;
+        newConnections = new HashSet<SocketChannel>();
     }
 
 
@@ -96,10 +99,12 @@ public class MyServerSocket implements Runnable {
                     SelectionKey key = iterator.next();
                     if (key.isAcceptable()) {
                         handleAccept(key, selector);
+
                     }
                     else if (key.isReadable()) {
                         handleRead(key);
                     }
+
                     iterator.remove();
                 }
             }
