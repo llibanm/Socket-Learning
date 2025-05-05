@@ -6,8 +6,8 @@ public class Master {
 
     private MyServerSocket serverChannel;
     private Thread myThread;
-    public Master(int port) {
-    }
+    private final int port = 2000;
+    public Master() {}
 
     public void start(int port) {
         try {
@@ -20,14 +20,13 @@ public class Master {
         }
     }
 
-    public static void main(String[] args) {
-        if(args.length != 2) {
-            System.out.println("[Server] Usage: Master <port>");
-        }
-        int port = Integer.parseInt(args[0]);
+    public int getPort(){
+        return port;
+    }
 
-        Master master = new Master(port);
-        master.start(port);
+    public static void main(String[] args) {
+        Master master = new Master();
+        master.start(master.getPort());
     }
 
     public MyServerSocket getServerChannel() {
