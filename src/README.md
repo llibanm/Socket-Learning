@@ -1,0 +1,1 @@
+Here are my training on how to create socket, selectors and making a broadcast tranfers to workers that will connect to a Master handling the selector
