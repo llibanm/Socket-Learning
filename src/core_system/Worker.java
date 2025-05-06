@@ -19,25 +19,29 @@ public class Worker implements Runnable {
         this.ID = ID;
     }
 
+    public void printMessageConsole(String msg){
+        System.out.println("[WORKER: "+getID()+"]: "+msg);
+    }
+
     @Override
     public void run() {
 
         try {
-            System.out.println("[CLIENT:"+getID()+"] : Connecting to server...");
+            printMessageConsole("Connecting to server...");
             socket = new Socket("localhost", port);
 
             inClient = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
             outClient = new PrintWriter(this.socket.getOutputStream(), true);
 
-            System.out.println("[CLIENT:"+getID()+"] : Client connected to server: " + socket.getRemoteSocketAddress()+":"+socket.getPort());
+            printMessageConsole("Worker connected to server: " + socket.getRemoteSocketAddress()+":"+socket.getPort());
             Thread.sleep(3000);
-            System.out.println("[CLIENT:"+getID()+"] : Client disconnecting from server...");
+            printMessageConsole("Worker disconnecting from server...");
             inClient.close();
             outClient.close();
             socket.close();
-            System.out.println("[CLIENT:"+getID()+"] : Client disconnected");
+            printMessageConsole("Worker disconnected");
         } catch (ConnectException e){
-            System.out.println("[CLIENT:"+getID()+"] : Error connecting to server, port: " + port+" may not exist");
+            printMessageConsole("Error connecting to server, port: " + port+" may not exist");
         } catch (IOException | InterruptedException e){
             e.printStackTrace();
         }
