@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 public class Worker implements Runnable {
 
@@ -13,8 +14,9 @@ public class Worker implements Runnable {
     private final int port = 2000;
     private Socket socket;
 
-    private BufferedReader inClient;
-    private PrintWriter outClient;
+    private BufferedReader reader;
+    private PrintWriter writer;
+
     public Worker(int ID){
         this.ID = ID;
     }
@@ -23,6 +25,32 @@ public class Worker implements Runnable {
         System.out.println("[WORKER: "+getID()+"]: "+msg);
     }
 
+    private void serverOutput(){
+        String serverResponse = null;
+
+        try {
+            printMessageConsole("Waiting for server response...");
+//            while ((serverResponse = reader.readLine()) != null) {
+//                System.out.println("Received from server: " + serverResponse);
+//            }
+            serverResponse = reader.readLine();
+            if(serverResponse != null){
+                printMessageConsole("Server response: "+serverResponse);
+
+            }
+        } catch (IOException e) {
+            printMessageConsole("[ERROR]: "+e.getMessage());
+        }
+    }
+
+//    private void serverOutputV2(){
+//        int bytesRead = 0;
+//
+//        try {
+//            bytesRead = socket.
+//        }
+//    }
+
     @Override
     public void run() {
 
@@ -30,19 +58,23 @@ public class Worker implements Runnable {
             printMessageConsole("Connecting to server...");
             socket = new Socket("localhost", port);
 
-            inClient = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-            outClient = new PrintWriter(this.socket.getOutputStream(), true);
+            reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            writer = new PrintWriter(this.socket.getOutputStream(), true);
 
             printMessageConsole("Worker connected to server: " + socket.getRemoteSocketAddress()+":"+socket.getPort());
-            Thread.sleep(3000);
+            serverOutput();
             printMessageConsole("Worker disconnecting from server...");
-            inClient.close();
-            outClient.close();
+            Thread.sleep(1000);
+            reader.close();
+            writer.close();
             socket.close();
-            printMessageConsole("Worker disconnected");
+
+            printMessageConsole("Worker  disconnected");
         } catch (ConnectException e){
             printMessageConsole("Error connecting to server, port: " + port+" may not exist");
-        } catch (IOException | InterruptedException e){
+        } catch (IOException
+                 | InterruptedException
+                e){
             e.printStackTrace();
         }
 

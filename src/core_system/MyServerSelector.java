@@ -25,12 +25,15 @@ public class MyServerSelector implements Runnable  {
 
     private static void handleAccept(SelectionKey key, Selector selector) throws IOException {
         //accpet connection
-        ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
-        SocketChannel socketChannel = serverSocketChannel.accept();
+        SocketChannel socketChannel;
+        try (ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel()) {
+            socketChannel = serverSocketChannel.accept();
+        }
         socketChannel.configureBlocking(false);
 
         // register new client channel for reading
-        socketChannel.register(selector, SelectionKey.OP_READ);
+        //socketChannel.register(selector, SelectionKey.OP_READ);
+        socketChannel.register(selector, SelectionKey.OP_WRITE);
         System.out.println("[Server] Accepted connection from " + socketChannel.getRemoteAddress());
     }
 
@@ -70,6 +73,71 @@ public class MyServerSelector implements Runnable  {
 //        clientChannel.write(writeBuffer);
     }
 
+    private static void handleWrite(SelectionKey key) throws IOException {
+        SocketChannel workerChannel = (SocketChannel) key.channel();
+
+        ByteBuffer byteBuffer = (ByteBuffer) key.attachment();
+
+        if(byteBuffer == null){
+            String respone = "[Server] HELLO WORLD!";
+            byteBuffer = ByteBuffer.wrap(respone.getBytes());
+        }
+
+        try{
+            workerChannel.write(byteBuffer);
+
+            if(!byteBuffer.hasRemaining()){
+                System.out.println("[Server] Write Complete to " + workerChannel.getRemoteAddress());
+
+                //switching key to readable by adding OP.READ and remving OP.Write
+                key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+
+
+                key.attach(null);
+            }
+            else{
+                System.out.println("[Server] Write Failed, remaning bytes: "+byteBuffer.remaining());
+            }
+        }catch (IOException e){
+            System.out.println("[Server] Write Failed, error writing to worker ");
+            workerChannel.close();
+            key.cancel();
+        }
+//        catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+
+    }
+
+    public void stop(){
+
+        if(selector != null){
+            selector.wakeup();
+        }
+
+        try {
+            if(selector != null){
+                for(SelectionKey key : selector.keys()){
+                    try {
+                        key.channel().close();
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }
+                }
+                selector.close();
+            }
+
+            if(serverChannel != null){
+                serverChannel.close();
+            }
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+    }
+
     @Override
     public void run() {
         try {
@@ -84,7 +152,7 @@ public class MyServerSelector implements Runnable  {
             System.out.println("[Server] Started on port: " + port);
             System.out.println("[Server] Listening on port: " + port);
 
-            while (true) {
+            while (true) {// à enlever
                 int readyChannels = selector.select();
 
                 if (readyChannels == 0) {
@@ -102,15 +170,21 @@ public class MyServerSelector implements Runnable  {
                     }
                     else if (key.isReadable()) {
                         handleRead(key);
+                    } else if (key.isWritable()) {
+                        handleWrite(key);
                     }
-
                     iterator.remove();
                 }
+
+
             }
 
         }catch (IOException e){
             throw new RuntimeException(e);
         }
+//        catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
 
     }
 
