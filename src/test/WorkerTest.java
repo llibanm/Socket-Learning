@@ -22,7 +22,7 @@ public class WorkerTest {
 
     private SocketChannel workerChannel;
     private Selector selectorWorker;
-    private ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+    private ByteBuffer byteBuffer;
     public WorkerTest() {}
 
     public void handleConnect(SelectionKey key) {
@@ -46,36 +46,87 @@ public class WorkerTest {
 
     }
 
+//    public void handleRead(SelectionKey key) {
+//        SocketChannel channel = (SocketChannel) key.channel();
+//        byteBuffer.clear();
+//
+//        try {
+//            int bytesRead = channel.read(byteBuffer);
+//
+//            if(bytesRead == -1) {
+//                System.out.println("[Server] Read Failed");
+//                channel.close();
+//                key.cancel();
+//                return;
+//            }
+//
+//            byteBuffer.flip();
+//
+//            byte[] bytes = new byte[byteBuffer.remaining()];
+//            byteBuffer.get(bytes);
+//            String message = new String(bytes, StandardCharsets.UTF_8);
+//
+//            System.out.println("[Server] " + message);
+//
+//            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+//
+//            key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
+//
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+
     public void handleRead(SelectionKey key) {
-        SocketChannel channel = (SocketChannel) key.channel();
-        byteBuffer.clear();
+        recieveMessageWithLenght(key);
+
+    }
+
+    public void recieveMessageWithLenght(SelectionKey key) {
 
         try {
-            int bytesRead = channel.read(byteBuffer);
+            ByteBuffer lenghtBuffer = ByteBuffer.allocate(Integer.BYTES);
 
-            if(bytesRead == -1) {
-                System.out.println("[Server] Read Failed");
-                channel.close();
-                key.cancel();
-                return;
+            int bytesRead = 0;
+            while(bytesRead < 4){
+                int r = workerChannel.read(lenghtBuffer);
+                if(r == -1){
+                    System.out.println("[Worker] connection lost");
+                    break;
+                }
+                bytesRead+=r;
             }
 
-            byteBuffer.flip();
+            lenghtBuffer.flip();
 
-            byte[] bytes = new byte[byteBuffer.remaining()];
-            byteBuffer.get(bytes);
-            String message = new String(bytes, StandardCharsets.UTF_8);
+            int message_lenght = lenghtBuffer.getInt();
 
-            System.out.println("[Server] " + message);
+            ByteBuffer messageBuffer = ByteBuffer.allocate(message_lenght);
 
-            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+            bytesRead = 0;
 
-            key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
+            while(bytesRead < message_lenght){
+                int r = workerChannel.read(messageBuffer);
+                if(r == -1){
+                    System.out.println("[Worker] connection lost");
+                    break;
+                }
+                bytesRead+=r;
+            }
+
+            messageBuffer.flip();
+
+            byte[] message_bytes = new byte[messageBuffer.remaining()];
+            messageBuffer.get(message_bytes);
+            System.out.println("[Worker] Received: " + new String(message_bytes, StandardCharsets.UTF_8));
+            System.out.println("[Worker] size of message: " + message_bytes.length);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
     }
+
 
     public void run(){
 
@@ -131,4 +182,7 @@ public class WorkerTest {
         test.run();
     }
 
+    public void allocateBuffer(int size){
+        byteBuffer = ByteBuffer.allocate(size);
+    }
 }

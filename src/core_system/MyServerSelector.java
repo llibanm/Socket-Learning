@@ -15,7 +15,9 @@ public class MyServerSelector implements Runnable  {
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
+    private ByteBuffer buffer;
     private int port;
+
 
 
     public MyServerSelector(int port) {
@@ -40,12 +42,12 @@ public class MyServerSelector implements Runnable  {
     private static void handleRead(SelectionKey key) throws IOException {
         //accept conenction
         SocketChannel clientChannel = (SocketChannel) key.channel();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024);
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
 
         int BytesRead=0;
 
         try {
-            BytesRead = clientChannel.read(byteBuffer);
+            BytesRead = clientChannel.read(buffer);
         }catch (IOException e){
             System.out.println("[Server] Read Failed");
             System.out.println("[Server] connection closed");
@@ -60,9 +62,9 @@ public class MyServerSelector implements Runnable  {
             key.cancel();
             return;
         }
-        byteBuffer.flip();
-        byte[] data = new byte[byteBuffer.limit()];
-        byteBuffer.get(data);
+        buffer.flip();
+        byte[] data = new byte[buffer.limit()];
+        buffer.get(data);
 
         String output = new String(data);
 
@@ -74,40 +76,75 @@ public class MyServerSelector implements Runnable  {
 //        clientChannel.write(writeBuffer);
     }
 
-    private static void handleWrite(SelectionKey key) throws IOException {
-        SocketChannel workerChannel = (SocketChannel) key.channel();
-
-        ByteBuffer byteBuffer = (ByteBuffer) key.attachment();
-
-        if(byteBuffer == null){
-            String respone = "[Server] HELLO WORLD!";
-            byteBuffer = ByteBuffer.wrap(respone.getBytes());
-        }
-
-        try{
-            workerChannel.write(byteBuffer);
-
-            if(!byteBuffer.hasRemaining()){
-                System.out.println("[Server] Write Complete to " + workerChannel.getRemoteAddress());
-
-                //switching key to readable by adding OP.READ and remving OP.Write
-                key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-
-
-                key.attach(null);
-            }
-            else{
-                System.out.println("[Server] Write Failed, remaning bytes: "+byteBuffer.remaining());
-            }
-        }catch (IOException e){
-            System.out.println("[Server] Write Failed, error writing to worker ");
-            workerChannel.close();
-            key.cancel();
-        }
+//    private static void handleWrite(SelectionKey key) throws IOException {
+//        SocketChannel workerChannel = (SocketChannel) key.channel();
+//
+//        ByteBuffer byteBuffer = (ByteBuffer) key.attachment();
+//
+//        if(byteBuffer == null){
+//            String respone = "[Server] HELLO WORLD!";
+//            byteBuffer = ByteBuffer.wrap(respone.getBytes());
+//        }
+//
+//        try{
+//            workerChannel.write(byteBuffer);
+//
+//            if(!byteBuffer.hasRemaining()){
+//                System.out.println("[Server] Write Complete to " + workerChannel.getRemoteAddress());
+//
+//                //switching key to readable by adding OP.READ and remving OP.Write
+//                key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+//                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+//
+//
+//                key.attach(null);
+//            }
+//            else{
+//                System.out.println("[Server] Write Failed, remaning bytes: "+byteBuffer.remaining());
+//            }
+//        }catch (IOException e){
+//            System.out.println("[Server] Write Failed, error writing to worker ");
+//            workerChannel.close();
+//            key.cancel();
+//        }
 //        catch (InterruptedException e) {
 //            throw new RuntimeException(e);
 //        }
+//
+//    }
+
+    public void handleWrite(SelectionKey key) throws IOException {
+        sendMessageWithLenght(key,"Hello World!");
+        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+    }
+
+
+    public void sendMessageWithLenght(SelectionKey key, String message) {
+        //méthode en-tête + message
+        SocketChannel serverSocketChannel = (SocketChannel) key.channel();
+
+        byte[] messageBytes = message.getBytes();
+        int messageLength = messageBytes.length;
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
+
+        buffer.putInt(messageLength);
+
+        buffer.put(messageBytes);
+
+        buffer.flip();
+
+        try {
+
+                serverSocketChannel.write(buffer);
+
+            if (!buffer.hasRemaining()) {
+                System.out.println("[Server] Sent " + messageLength + " bytes");
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
