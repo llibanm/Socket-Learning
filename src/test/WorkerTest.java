@@ -35,9 +35,12 @@ public class WorkerTest {
             }
             System.out.println("[Server] Connected to " + channel.getRemoteAddress());
 
-            channel.register(selectorWorker, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+            channel.register(selectorWorker, SelectionKey.OP_READ );
 
-        } catch (IOException e) {
+        }catch(ConnectException e){
+            System.out.println("[Worker] connection failed, could not find server");
+        }
+        catch (IOException e) {
             throw new RuntimeException(e);
         }
 
@@ -64,6 +67,10 @@ public class WorkerTest {
             String message = new String(bytes, StandardCharsets.UTF_8);
 
             System.out.println("[Server] " + message);
+
+            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -110,7 +117,10 @@ public class WorkerTest {
                 }
             }
 
-        } catch (IOException e) {
+        }catch (ConnectException e){
+            System.out.println("[Worker] connection failed, could not find server");
+        }
+        catch (IOException e) {
             throw new RuntimeException(e);
         }
 

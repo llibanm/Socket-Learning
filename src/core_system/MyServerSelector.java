@@ -68,6 +68,7 @@ public class MyServerSelector implements Runnable  {
 
         System.out.println("[Server] Received: " + output+" from "+clientChannel.getRemoteAddress());
 
+
 //        String message ="echo "+output;
 //        ByteBuffer writeBuffer = ByteBuffer.wrap(message.getBytes());
 //        clientChannel.write(writeBuffer);
