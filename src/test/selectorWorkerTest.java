@@ -13,6 +13,8 @@ import java.util.Set;
 
 public class selectorWorkerTest {
 
+    String randomDataTextFilePAth="/home/vazek/Documents/internship document/random_data_text_file.txt";
+
     public static void main(String[] args) throws IOException {
 
         Selector selectorWorker = Selector.open();
