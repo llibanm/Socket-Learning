@@ -7,15 +7,18 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MyServerSelector implements Runnable  {
 
     private ServerSocketChannel serverChannel;
     private Selector selector;
     private ByteBuffer buffer;
+    private AtomicBoolean stop = new AtomicBoolean(false);
     private int port;
 
 
@@ -42,7 +45,7 @@ public class MyServerSelector implements Runnable  {
     private static void handleRead(SelectionKey key) throws IOException {
         //accept conenction
         SocketChannel clientChannel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
 
         int BytesRead=0;
 
@@ -76,48 +79,32 @@ public class MyServerSelector implements Runnable  {
 //        clientChannel.write(writeBuffer);
     }
 
-//    private static void handleWrite(SelectionKey key) throws IOException {
-//        SocketChannel workerChannel = (SocketChannel) key.channel();
-//
-//        ByteBuffer byteBuffer = (ByteBuffer) key.attachment();
-//
-//        if(byteBuffer == null){
-//            String respone = "[Server] HELLO WORLD!";
-//            byteBuffer = ByteBuffer.wrap(respone.getBytes());
-//        }
-//
-//        try{
-//            workerChannel.write(byteBuffer);
-//
-//            if(!byteBuffer.hasRemaining()){
-//                System.out.println("[Server] Write Complete to " + workerChannel.getRemoteAddress());
-//
-//                //switching key to readable by adding OP.READ and remving OP.Write
-//                key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-//                key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
-//
-//
-//                key.attach(null);
-//            }
-//            else{
-//                System.out.println("[Server] Write Failed, remaning bytes: "+byteBuffer.remaining());
-//            }
-//        }catch (IOException e){
-//            System.out.println("[Server] Write Failed, error writing to worker ");
-//            workerChannel.close();
-//            key.cancel();
-//        }
-//        catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//    }
+
 
     public void handleWrite(SelectionKey key) throws IOException {
-        sendMessageWithLenght(key,"Hello World!");
-        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
-        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+        try {
+            sendMessageWithLenght(key,"Hello World!");
+//        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+//        key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+            Thread.sleep(3000);
+            sendMessageWithLenght(key,"QUIT");
+            key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+            Thread.sleep(1000);
+            stop.set(true);
+
+//            int readykeys = selector.select();
+//
+//            if (readykeys > 0) {
+//                Thread.sleep(3000);
+//                readykeys = selector.select();
+//            }
+
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 
 
     public void sendMessageWithLenght(SelectionKey key, String message) {
@@ -139,7 +126,7 @@ public class MyServerSelector implements Runnable  {
                 serverSocketChannel.write(buffer);
 
             if (!buffer.hasRemaining()) {
-                System.out.println("[Server] Sent " + messageLength + " bytes");
+                System.out.println("[Server] Sent " + message + " to : " + serverSocketChannel.getRemoteAddress());
             }
 
         } catch (IOException e) {
@@ -207,11 +194,14 @@ public class MyServerSelector implements Runnable  {
 
                     }
                     else if (key.isReadable()) {
-                        handleRead(key);
+//                        handleRead(key);
                     } else if (key.isWritable()) {
                         handleWrite(key);
                     }
                     iterator.remove();
+                }
+                if(stop.get()){
+                    break;
                 }
 
 

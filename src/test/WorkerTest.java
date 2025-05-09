@@ -15,6 +15,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class WorkerTest {
     private static final String HOST = "localhost";
@@ -23,6 +24,7 @@ public class WorkerTest {
     private SocketChannel workerChannel;
     private Selector selectorWorker;
     private ByteBuffer byteBuffer;
+    private AtomicBoolean cancelled = new AtomicBoolean(false);
     public WorkerTest() {}
 
     public void handleConnect(SelectionKey key) {
@@ -46,43 +48,21 @@ public class WorkerTest {
 
     }
 
-//    public void handleRead(SelectionKey key) {
-//        SocketChannel channel = (SocketChannel) key.channel();
-//        byteBuffer.clear();
-//
-//        try {
-//            int bytesRead = channel.read(byteBuffer);
-//
-//            if(bytesRead == -1) {
-//                System.out.println("[Server] Read Failed");
-//                channel.close();
-//                key.cancel();
-//                return;
-//            }
-//
-//            byteBuffer.flip();
-//
-//            byte[] bytes = new byte[byteBuffer.remaining()];
-//            byteBuffer.get(bytes);
-//            String message = new String(bytes, StandardCharsets.UTF_8);
-//
-//            System.out.println("[Server] " + message);
-//
-//            key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
-//
-//            key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
-//
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+
 
     public void handleRead(SelectionKey key) {
-        recieveMessageWithLenght(key);
+       String s = recieveMessageWithLenght(key);
+       if (s != null) {
+           if(s.equals("QUIT")){
+               key.cancel();
+               System.out.println("[Worker] key cancelled");
+               cancelled.set(true);
+           }
+       }
 
     }
 
-    public void recieveMessageWithLenght(SelectionKey key) {
+    public String recieveMessageWithLenght(SelectionKey key) {
 
         try {
             ByteBuffer lenghtBuffer = ByteBuffer.allocate(Integer.BYTES);
@@ -92,7 +72,9 @@ public class WorkerTest {
                 int r = workerChannel.read(lenghtBuffer);
                 if(r == -1){
                     System.out.println("[Worker] connection lost");
-                    break;
+                    System.out.println("[Worker] 69");
+                    cancelled.set(true);
+                    return null;
                 }
                 bytesRead+=r;
             }
@@ -109,7 +91,10 @@ public class WorkerTest {
                 int r = workerChannel.read(messageBuffer);
                 if(r == -1){
                     System.out.println("[Worker] connection lost");
-                    break;
+                    System.out.println("[Worker] 89");
+                    cancelled.set(true);
+                    System.out.println("[Worker] cancelled: "+cancelled.get());
+                    return null;
                 }
                 bytesRead+=r;
             }
@@ -118,8 +103,13 @@ public class WorkerTest {
 
             byte[] message_bytes = new byte[messageBuffer.remaining()];
             messageBuffer.get(message_bytes);
-            System.out.println("[Worker] Received: " + new String(message_bytes, StandardCharsets.UTF_8));
+
+            String res = new String(message_bytes, StandardCharsets.UTF_8);
+
+            System.out.println("[Worker] Received: " + res);
             System.out.println("[Worker] size of message: " + message_bytes.length);
+
+            return res;
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -156,15 +146,25 @@ public class WorkerTest {
                         continue;
                     }
 
-                    if (key.isConnectable()){
-                        handleConnect(key);
-                    }
-                    if (key.isReadable()){
-                        handleRead(key);
-                    }
-                    if (key.isWritable()){
+                    if (!cancelled.get()) {
+                        if (key.isConnectable()){
+                            handleConnect(key);
+                        }
+                        else if (key.isReadable()){
+                            handleRead(key);
+                        }
+                        else if (key.isWritable()){
 
+                        }
+//                        System.out.println(" stop status: "+stopped.get());
                     }
+                    else{
+                        workerChannel.close();
+                    }
+
+                }
+                if(cancelled.get()){
+                    break;
                 }
             }
 
