@@ -100,6 +100,32 @@ public class selectorWorkerTest implements Runnable {
                             e.printStackTrace();}
                     }
                     else if (key.isWritable()) {
+                        String message = "QUITTING";
+                        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+                        int messageLength = messageBytes.length;
+
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
+                        byteBuffer.putInt(messageLength);
+                        byteBuffer.put(messageBytes);
+                        byteBuffer.flip();
+
+                        try {
+                            socketChannelWorker.write(byteBuffer);
+
+                            if(!byteBuffer.hasRemaining()){
+                                printMessage("message: "+message+" sent to server");
+                                key.interestOps(SelectionKey.OP_READ);
+                                key.cancel();
+                                socketChannelWorker.close();
+                                printMessage("Connection closed");
+                                return;
+                            }
+
+                        }catch (IOException e){
+                            key.cancel();
+                            throw new RuntimeException();
+
+                        }
 
                     }
 

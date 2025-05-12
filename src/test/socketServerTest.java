@@ -91,7 +91,15 @@ public class socketServerTest {
                         else {
                             buffer.flip();
                             int size = buffer.getInt();
-                            byte[] messageBytes = new byte[size];
+                            buffer = ByteBuffer.allocate(size);
+                            read = socketChannel.read(buffer);
+
+                            if(read == -1) {
+                                System.out.println("[SERVER] : connection closed");
+                                key.cancel();
+                            }
+                            buffer.flip();
+                            byte[] messageBytes = new byte[buffer.remaining()];
                             buffer.get(messageBytes);
                             String message = new String(messageBytes);
                             System.out.println("[SERVER] : recieved message: "+message+" to "+socketChannel.getRemoteAddress());
