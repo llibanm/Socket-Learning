@@ -66,38 +66,56 @@ public class selectorWorkerTest implements Runnable {
                         printMessage("READ connection from: "+secondChannelWorker.getRemoteAddress());
                     }
                     else if (key.isReadable()) {
-                        try {
-                            ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES);// will allocate the exact number of bytes necessary
+                        printMessage("Entering READ loop");
+                        while (true) {
 
-                            int readBytes = socketChannelWorker.read(byteBuffer);
-                            if(readBytes == -1){
-                                printMessage("Read Failed");
-                                printMessage("Connection closed");
-                                key.cancel();
-                                return;
-                            }
+                            try {
+                                ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES);// will allocate the exact number of bytes necessary
 
-                            byteBuffer.flip();
-                            int size = byteBuffer.getInt();
+                                int readBytes = socketChannelWorker.read(byteBuffer);
+                                if(readBytes == -1){
+                                    printMessage("Read Failed");
+                                    printMessage("Connection closed");
+                                    key.cancel();
+                                    return;
+                                }
+                                else if(readBytes < Integer.BYTES){
+                                    byteBuffer.compact();
+                                    continue;
+                                }
 
-                            byteBuffer =ByteBuffer.allocate(size); // re allocate the exact number of bytes necessary
 
-                            readBytes = socketChannelWorker.read(byteBuffer);
-                            if(readBytes == -1){
-                                printMessage("Read Failed");
-                                printMessage("Connection closed");
-                                key.cancel();
-                                return;
-                            }
-                            byteBuffer.flip();
-                            byte[] message = new byte[byteBuffer.remaining()];
-                            byteBuffer.get(message);
-                            String messageString = new String(message, StandardCharsets.UTF_8);
-                            printMessage("Received: " + messageString);
-                            key.interestOps(SelectionKey.OP_WRITE);// changing read rights to write rights
-                            printMessage("WRITE OK");
-                        }catch (IOException e){
-                            e.printStackTrace();}
+                                byteBuffer.flip();
+                                int size = byteBuffer.getInt();
+
+
+                                byteBuffer =ByteBuffer.allocate(size); // re allocate the exact number of bytes necessary
+
+                                readBytes = socketChannelWorker.read(byteBuffer);
+                                if(readBytes == -1){
+                                    printMessage("Read Failed");
+                                    printMessage("Connection closed");
+                                    key.cancel();
+                                    return;
+                                }
+                                else if(readBytes < Integer.BYTES){
+                                    byteBuffer.compact();
+                                    continue;
+                                }
+                                byteBuffer.flip();
+                                byte[] message = new byte[byteBuffer.remaining()];
+                                byteBuffer.get(message);
+                                String messageString = new String(message, StandardCharsets.UTF_8);
+                                //printMessage("Received: " + messageString);
+                                if(messageString.equals("END")){
+                                    key.interestOps(SelectionKey.OP_WRITE);// changing read rights to write rights
+                                    printMessage("READ OK, Entering WRITE");
+                                    break;
+                                }
+                                byteBuffer.clear();
+                            }catch (IOException e){
+                                e.printStackTrace();}
+                        }
                     }
                     else if (key.isWritable()) {
                         String message = "QUITTING";

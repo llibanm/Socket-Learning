@@ -1,9 +1,7 @@
 package test;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,9 +17,11 @@ public class socketServerTest {
 
     private SocketChannel[] connections = new SocketChannel[3];
     int connectionCount = 0;
+    long linesNumber=0;
 
     public void run() throws IOException {
-        String randomDataTextFilePAth="/home/vazek/Documents/internship document/random_data_text_file.txt";
+        String randomDataTextFilePath2G="/home/vazek/Documents/internship document/random_data_text_file.txt";
+        String randomDataTextFilePath100MB="/home/vazek/Documents/internship document/random_text_100MB.txt"; //for test
         try {
 
 
@@ -65,13 +65,40 @@ public class socketServerTest {
                         System.out.println("[SERVER] : sending data");
                     }
                     else if (key.isWritable()) {
+
+                        long startTime = System.currentTimeMillis();
+
                         SocketChannel socketChannel = (SocketChannel) key.channel();
-                        String message = "Hello Worker";
+                        ByteBuffer buffer;
+                        byte[] messageBytes;
+                        String message;
+                        int messageLength;
 
-                        byte[] messageBytes = message.getBytes();
-                        int messageLength = messageBytes.length;
+                        try{BufferedReader br = new BufferedReader(new FileReader(randomDataTextFilePath2G));
+                            while ((message = br.readLine()) != null) {
+                                messageBytes = message.getBytes();
+                                messageLength = messageBytes.length;
+                                buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
+                                buffer.putInt(messageLength);
+                                buffer.put(messageBytes);
+                                buffer.flip();
 
-                        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);// allocate the exact number of byte needed
+                                socketChannel.write(buffer);
+
+                                if(!buffer.hasRemaining()){
+                                    linesNumber++;
+                                    System.out.println("[SERVER] : lines: "+linesNumber);
+                                }
+                            }
+                        }catch (IOException e){
+                            throw new RuntimeException();
+                        }
+
+                        message="END";
+                        messageBytes = message.getBytes();
+                        messageLength = messageBytes.length;
+
+                        buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);// allocate the exact number of byte needed
                         buffer.putInt(messageLength);
                         buffer.put(messageBytes);
                         buffer.flip();
@@ -82,6 +109,9 @@ public class socketServerTest {
                             if(!buffer.hasRemaining()) {
                                 System.out.println("[SERVER] : send data: "+message+" to "+socketChannel.getRemoteAddress());
                                 key.interestOps(SelectionKey.OP_READ);// change write rights to read rights
+                                long endTime = System.currentTimeMillis();
+                                long duration = endTime - startTime;
+                                System.out.println("[SERVER]: Duration: "+duration);
                             }
 
                         } catch (IOException e) {
