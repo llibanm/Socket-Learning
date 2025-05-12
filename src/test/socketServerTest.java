@@ -17,6 +17,7 @@ import java.util.Set;
 
 public class socketServerTest {
     public static void main(String[] args) {
+        String randomDataTextFilePAth="/home/vazek/Documents/internship document/random_data_text_file.txt";
         try {
 
 
