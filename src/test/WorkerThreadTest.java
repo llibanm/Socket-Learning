@@ -18,6 +18,7 @@ public class WorkerThreadTest {
                 workerThreads[i].start();
             }
 
+
             for (int i = 0; i < workerThreads.length; i++) {
                 workerThreads[i].join();
             }

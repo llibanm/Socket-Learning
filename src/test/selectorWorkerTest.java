@@ -117,6 +117,7 @@ public class selectorWorkerTest implements Runnable {
                                 key.interestOps(SelectionKey.OP_READ);// putting both server and worker to read so that they can close each other properly
                                 key.cancel();
                                 socketChannelWorker.close();
+                                Thread.sleep(1000);
                                 printMessage("Connection closed");
                                 return;
                             }
@@ -125,6 +126,8 @@ public class selectorWorkerTest implements Runnable {
                             key.cancel();
                             throw new RuntimeException();
 
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
                         }
 
                     }

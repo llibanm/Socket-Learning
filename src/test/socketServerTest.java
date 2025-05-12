@@ -16,7 +16,11 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class socketServerTest {
-    public static void main(String[] args) {
+
+    private SocketChannel[] connections = new SocketChannel[3];
+    int connectionCount = 0;
+
+    public void run() throws IOException {
         String randomDataTextFilePAth="/home/vazek/Documents/internship document/random_data_text_file.txt";
         try {
 
@@ -50,6 +54,12 @@ public class socketServerTest {
                     if (key.isAcceptable()) {
                         SocketChannel socketChannel = ((ServerSocketChannel)key.channel()).accept(); // handleAccept part
                         socketChannel.configureBlocking(false);
+
+                        if(connectionCount < 3){
+                            connections[connectionCount] = socketChannel;
+                            connectionCount++;
+                        }
+
                         socketChannel.register(selector, SelectionKey.OP_WRITE); // change OP_ACCEPT into OP_WRITE, server will write to incoming connections
                         System.out.println("[SERVER] : SERVER accepted connection from: "+socketChannel.getRemoteAddress());
                         System.out.println("[SERVER] : sending data");
@@ -103,6 +113,12 @@ public class socketServerTest {
                             buffer.get(messageBytes);
                             String message = new String(messageBytes);
                             System.out.println("[SERVER] : recieved message: "+message+" to "+socketChannel.getRemoteAddress());
+
+                            System.out.println("[SERVER] : Total connections received: "+connectionCount);
+                            for(int i = 0;i<connections.length;i++) {
+                                System.out.println("[SERVER] : connection accepted "+connections[i]);
+                            }
+
                         }
                     }
 
@@ -112,8 +128,19 @@ public class socketServerTest {
             }
 
 
-        } catch (IOException e) {
+        } catch (IOException  e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        socketServerTest socketServerTest = new socketServerTest();
+        socketServerTest.run();
+
+    }
+
+    public SocketChannel[] getConnections() {
+        return connections;
     }
 }
