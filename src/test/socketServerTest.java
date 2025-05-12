@@ -66,7 +66,7 @@ public class socketServerTest {
                     }
                     else if (key.isWritable()) {
 
-                        long startTime = System.currentTimeMillis();
+                        long startTime = System.nanoTime();
 
                         SocketChannel socketChannel = (SocketChannel) key.channel();
                         ByteBuffer buffer;
@@ -87,8 +87,9 @@ public class socketServerTest {
 
                                 if(!buffer.hasRemaining()){
                                     linesNumber++;
-                                    System.out.println("[SERVER] : lines: "+linesNumber);
+                                    //System.out.println("[SERVER] : lines: "+linesNumber);
                                 }
+                                buffer.clear();
                             }
                         }catch (IOException e){
                             throw new RuntimeException();
@@ -109,10 +110,12 @@ public class socketServerTest {
                             if(!buffer.hasRemaining()) {
                                 System.out.println("[SERVER] : send data: "+message+" to "+socketChannel.getRemoteAddress());
                                 key.interestOps(SelectionKey.OP_READ);// change write rights to read rights
-                                long endTime = System.currentTimeMillis();
+                                long endTime = System.nanoTime();
                                 long duration = endTime - startTime;
-                                System.out.println("[SERVER]: Duration: "+duration);
+                                double durationSeconds = duration / 1000000000.0;
+                                System.out.println("[SERVER]: Duration: "+durationSeconds+" seconds");
                             }
+                            buffer.clear();
 
                         } catch (IOException e) {
                             throw new RuntimeException(e);
@@ -145,7 +148,7 @@ public class socketServerTest {
                             System.out.println("[SERVER] : recieved message: "+message+" to "+socketChannel.getRemoteAddress());
 
                             System.out.println("[SERVER] : Total connections received: "+connectionCount);
-                            for(int i = 0;i<connections.length;i++) {
+                            for(int i = 0;i<connectionCount;i++) {
                                 System.out.println("[SERVER] : connection accepted "+connections[i]);
                             }
 

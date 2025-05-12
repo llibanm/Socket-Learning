@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 public class fileLoad {
 
     private static final String randomDataTextFilePAth= "/home/vazek/Documents/internship document/random_data_text_file.txt";
+    private static final String randomDataTextFilePath100MB="/home/vazek/Documents/internship document/random_text_100MB.txt"; //for test
     private String contenu;
 
     public fileLoad() {}
@@ -22,7 +23,7 @@ public class fileLoad {
     }
 
     public static void main(String[] args) throws IOException {
-        long lines = countLines(randomDataTextFilePAth);
+        long lines = countLines(randomDataTextFilePath100MB);
         System.out.println(lines);
     }
 

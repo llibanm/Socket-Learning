@@ -14,6 +14,7 @@ import java.util.Set;
 public class selectorWorkerTest implements Runnable {
 
     private int ID;
+    private ByteBuffer byteBuffer;
 
     public selectorWorkerTest(int ID) {
         this.ID = ID;
@@ -70,8 +71,9 @@ public class selectorWorkerTest implements Runnable {
                         while (true) {
 
                             try {
-                                ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES);// will allocate the exact number of bytes necessary
+                                byteBuffer = ByteBuffer.allocate(Integer.BYTES);// will allocate the exact number of bytes necessary
 
+                                byteBuffer.clear();
                                 int readBytes = socketChannelWorker.read(byteBuffer);
                                 if(readBytes == -1){
                                     printMessage("Read Failed");
@@ -90,7 +92,7 @@ public class selectorWorkerTest implements Runnable {
 
 
                                 byteBuffer =ByteBuffer.allocate(size); // re allocate the exact number of bytes necessary
-
+                                byteBuffer.clear();
                                 readBytes = socketChannelWorker.read(byteBuffer);
                                 if(readBytes == -1){
                                     printMessage("Read Failed");
@@ -98,10 +100,10 @@ public class selectorWorkerTest implements Runnable {
                                     key.cancel();
                                     return;
                                 }
-                                else if(readBytes < Integer.BYTES){
-                                    byteBuffer.compact();
-                                    continue;
-                                }
+//                                else if(readBytes < Integer.BYTES){
+//                                    byteBuffer.compact();
+//                                    continue;
+//                                }
                                 byteBuffer.flip();
                                 byte[] message = new byte[byteBuffer.remaining()];
                                 byteBuffer.get(message);
@@ -113,6 +115,7 @@ public class selectorWorkerTest implements Runnable {
                                     break;
                                 }
                                 byteBuffer.clear();
+
                             }catch (IOException e){
                                 e.printStackTrace();}
                         }
@@ -122,7 +125,7 @@ public class selectorWorkerTest implements Runnable {
                         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
                         int messageLength = messageBytes.length;
 
-                        ByteBuffer byteBuffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
+                        byteBuffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
                         byteBuffer.putInt(messageLength);
                         byteBuffer.put(messageBytes);
                         byteBuffer.flip();
@@ -139,6 +142,7 @@ public class selectorWorkerTest implements Runnable {
                                 printMessage("Connection closed");
                                 return;
                             }
+                            byteBuffer.clear();
 
                         }catch (IOException e){
                             key.cancel();
