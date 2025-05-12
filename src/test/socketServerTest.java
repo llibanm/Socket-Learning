@@ -79,6 +79,24 @@ public class socketServerTest {
                         }
 
                     }
+                    else if (key.isReadable()) {
+                        SocketChannel socketChannel = (SocketChannel) key.channel();
+                        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
+                        int read = socketChannel.read(buffer);
+
+                        if(read == -1) {
+                            System.out.println("[SERVER] : connection closed");
+                            key.cancel();
+                        }
+                        else {
+                            buffer.flip();
+                            int size = buffer.getInt();
+                            byte[] messageBytes = new byte[size];
+                            buffer.get(messageBytes);
+                            String message = new String(messageBytes);
+                            System.out.println("[SERVER] : recieved message: "+message+" to "+socketChannel.getRemoteAddress());
+                        }
+                    }
 
                 }
 
