@@ -114,7 +114,7 @@ public class selectorWorkerTest implements Runnable {
 
                             if(!byteBuffer.hasRemaining()){
                                 printMessage("message: "+message+" sent to server");
-                                key.interestOps(SelectionKey.OP_READ);
+                                key.interestOps(SelectionKey.OP_READ);// putting both server and worker to read so that they can close each other properly
                                 key.cancel();
                                 socketChannelWorker.close();
                                 printMessage("Connection closed");
