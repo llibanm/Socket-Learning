@@ -11,50 +11,59 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
 
-public class selectorWorkerTest {
+public class selectorWorkerTest implements Runnable {
+
+    private int ID;
+
+    public selectorWorkerTest(int ID) {
+        this.ID = ID;
+    }
+
+    public void printMessage(String message) {
+        System.out.println("[Worker: "+ID+"]: "+message);
+    }
+
+    @Override
+    public void run() {
+        try{
+            Selector selectorWorker = Selector.open();
+            SocketChannel socketChannelWorker = SocketChannel.open();
+            socketChannelWorker.configureBlocking(false);
+
+            printMessage("connection to server");
+
+            socketChannelWorker.connect(new InetSocketAddress("localhost",2000)); // connection to localhost server on port 2000
+            socketChannelWorker.register(selectorWorker, SelectionKey.OP_CONNECT); //
 
 
 
-    public static void main(String[] args) throws IOException {
+            while (true) { // tant que la connection est etablie
 
-        Selector selectorWorker = Selector.open();
-        SocketChannel socketChannelWorker = SocketChannel.open();
-        socketChannelWorker.configureBlocking(false);
-
-        System.out.println("[WORKER] : connection to server");
-
-        socketChannelWorker.connect(new InetSocketAddress("localhost",2000)); // connection to localhost server on port 2000
-        socketChannelWorker.register(selectorWorker, SelectionKey.OP_CONNECT); //
+                int ready = selectorWorker.select();
+                if(ready == 0){
+                    continue;
+                }
 
 
 
-        while (true) { // tant que la connection est etablie
+                Set<SelectionKey> keys = selectorWorker.selectedKeys();
+                Iterator<SelectionKey> iterator = keys.iterator();
 
-            int ready = selectorWorker.select();
-            if(ready == 0){
-                continue;
-            }
-
-
-
-            Set<SelectionKey> keys = selectorWorker.selectedKeys();
-            Iterator<SelectionKey> iterator = keys.iterator();
-
-            while (iterator.hasNext()) {
-                SelectionKey key = iterator.next();
-                iterator.remove();
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
 
                     if (key.isConnectable()) {
 
                         if(socketChannelWorker.finishConnect()){
-                            System.out.println("[WORKER] : ACCEPTED connection to server: "+socketChannelWorker.getRemoteAddress());
+                            printMessage("ACCEPTED connection to server: "+socketChannelWorker.getRemoteAddress());
                         }
 
                         SocketChannel secondChannelWorker = (SocketChannel) key.channel();
 
                         secondChannelWorker.register(selectorWorker, SelectionKey.OP_READ);
 
-                        System.out.println("[WORKER] : READ connection from: "+secondChannelWorker.getRemoteAddress());
+                        printMessage("READ connection from: "+secondChannelWorker.getRemoteAddress());
                     }
                     else if (key.isReadable()) {
                         try {
@@ -62,8 +71,8 @@ public class selectorWorkerTest {
 
                             int readBytes = socketChannelWorker.read(byteBuffer);
                             if(readBytes == -1){
-                                System.out.println("[WORKER] : Read Failed");
-                                System.out.println("[WORKER] : Connection closed");
+                                printMessage("Read Failed");
+                                printMessage("Connection closed");
                                 key.cancel();
                                 return;
                             }
@@ -75,8 +84,8 @@ public class selectorWorkerTest {
 
                             readBytes = socketChannelWorker.read(byteBuffer);
                             if(readBytes == -1){
-                                System.out.println("[WORKER] : Read Failed");
-                                System.out.println("[WORKER] : Connection closed");
+                                printMessage("Read Failed");
+                                printMessage("Connection closed");
                                 key.cancel();
                                 return;
                             }
@@ -84,9 +93,9 @@ public class selectorWorkerTest {
                             byte[] message = new byte[byteBuffer.remaining()];
                             byteBuffer.get(message);
                             String messageString = new String(message, StandardCharsets.UTF_8);
-                            System.out.println("[WORKER] : Received: " + messageString);
+                            printMessage("Received: " + messageString);
                             key.interestOps(SelectionKey.OP_WRITE);// changing read rights to write rights
-                            System.out.println("[WORKER] : WRITE OK");
+                            printMessage("WRITE OK");
                         }catch (IOException e){
                             e.printStackTrace();}
                     }
@@ -94,9 +103,22 @@ public class selectorWorkerTest {
 
                     }
 
+                }
             }
+        }catch (IOException e){
+            throw new RuntimeException();
         }
+    }
 
+    public static void main(String[] args) {
+        try {
+            selectorWorkerTest test = new selectorWorkerTest(0);
+            Thread thread = new Thread(test);
+            thread.start();
+            thread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
