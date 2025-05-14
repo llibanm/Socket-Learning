@@ -1,20 +1,23 @@
 package test;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.Set;
 
 public class selectorWorkerTest implements Runnable {
 
     private int ID;
-    private ByteBuffer byteBuffer;
+    private static int BUFFER_SIZE = 64 * 1024; //8kb allocated
+    private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+    private static final String UPLOAD_DIRECTORY = "/home/vazek/Documents/internship_document/worker/worker.txt";
+    private long bytesTransferred = 0;
 
     public selectorWorkerTest(int ID) {
         this.ID = ID;
@@ -36,7 +39,22 @@ public class selectorWorkerTest implements Runnable {
             socketChannelWorker.connect(new InetSocketAddress("localhost",2000)); // connection to localhost server on port 2000
             socketChannelWorker.register(selectorWorker, SelectionKey.OP_CONNECT); //
 
+            File fileUpload = new File(UPLOAD_DIRECTORY);
 
+            if(!fileUpload.exists()){
+                fileUpload.mkdir();
+            }
+
+            FileChannel fileChannel = FileChannel.open(Paths.get(UPLOAD_DIRECTORY),
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE);
+
+
+
+            printMessage("File receive will be on: "+UPLOAD_DIRECTORY);
+            Boolean headerDone = false;
+
+            long startTime = System.currentTimeMillis();
 
             while (true) { // tant que la connection est etablie
 
@@ -67,97 +85,39 @@ public class selectorWorkerTest implements Runnable {
                         printMessage("READ connection from: "+secondChannelWorker.getRemoteAddress());
                     }
                     else if (key.isReadable()) {
-                        printMessage("Entering READ loop");
-                        while (true) {
+                        SocketChannel socketChannel = (SocketChannel) key.channel();
+                        byteBuffer.clear();
+                        int bytesRead = socketChannel.read(byteBuffer);
 
-                            try {
-                                byteBuffer = ByteBuffer.allocate(Integer.BYTES);// will allocate the exact number of bytes necessary
-
-                                byteBuffer.clear();
-                                int readBytes = socketChannelWorker.read(byteBuffer);
-                                if(readBytes == -1){
-                                    printMessage("Read Failed");
-                                    printMessage("Connection closed");
-                                    key.cancel();
-                                    return;
-                                }
-                                else if(readBytes < Integer.BYTES){
-                                    byteBuffer.compact();
-                                    continue;
-                                }
+                        if(bytesRead > 0) {
+                            byteBuffer.flip();
+                            fileChannel.write(byteBuffer);
+                            bytesTransferred += bytesRead;
+                        } else if (bytesRead == -1) {
+                            long endTime = System.currentTimeMillis();
+                            double transferTime = (endTime - startTime)/1000.0;
+                            double transferRate = (bytesTransferred/(1024*1024)/transferTime);
 
 
-                                byteBuffer.flip();
-                                int size = byteBuffer.getInt();
-
-
-                                byteBuffer =ByteBuffer.allocate(size); // re allocate the exact number of bytes necessary
-                                byteBuffer.clear();
-                                readBytes = socketChannelWorker.read(byteBuffer);
-                                if(readBytes == -1){
-                                    printMessage("Read Failed");
-                                    printMessage("Connection closed");
-                                    key.cancel();
-                                    return;
-                                }
-//                                else if(readBytes < Integer.BYTES){
-//                                    byteBuffer.compact();
-//                                    continue;
-//                                }
-                                byteBuffer.flip();
-                                byte[] message = new byte[byteBuffer.remaining()];
-                                byteBuffer.get(message);
-                                String messageString = new String(message, StandardCharsets.UTF_8);
-                                //printMessage("Received: " + messageString);
-                                if(messageString.equals("END")){
-                                    key.interestOps(SelectionKey.OP_WRITE);// changing read rights to write rights
-                                    printMessage("READ OK, Entering WRITE");
-                                    break;
-                                }
-                                byteBuffer.clear();
-
-                            }catch (IOException e){
-                                e.printStackTrace();}
+                            printMessage("File transfert complete");
+                            System.out.printf("Received: %.2f MB%n", bytesTransferred / (1024.0 * 1024.0));
+                            System.out.printf("Transfer time: %.2f seconds%n", transferTime);
+                            System.out.printf("Transfer rate: %.2f MB/s%n", transferRate);
+                            socketChannel.close();
+                            fileChannel.close();
+                            selectorWorker.close();
+                            return;
                         }
                     }
                     else if (key.isWritable()) {
-                        String message = "QUITTING";
-                        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-                        int messageLength = messageBytes.length;
 
-                        byteBuffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
-                        byteBuffer.putInt(messageLength);
-                        byteBuffer.put(messageBytes);
-                        byteBuffer.flip();
-
-                        try {
-                            socketChannelWorker.write(byteBuffer);
-
-                            if(!byteBuffer.hasRemaining()){
-                                printMessage("message: "+message+" sent to server");
-                                key.interestOps(SelectionKey.OP_READ);// putting both server and worker to read so that they can close each other properly
-                                key.cancel();
-                                socketChannelWorker.close();
-                                Thread.sleep(1000);
-                                printMessage("Connection closed");
-                                return;
-                            }
-                            byteBuffer.clear();
-
-                        }catch (IOException e){
-                            key.cancel();
-                            throw new RuntimeException();
-
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
 
                     }
 
                 }
             }
         }catch (IOException e){
-            throw new RuntimeException();
+            e.printStackTrace();
         }
     }
 

@@ -1,27 +1,32 @@
 package test;
 
+import java.awt.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Iterator;
 import java.util.Set;
 
 public class socketServerTest {
 
     private SocketChannel[] connections = new SocketChannel[3];
+    private final int BUFFER_SIZE = 64 * 1024; // 64KB
     int connectionCount = 0;
     long linesNumber=0;
 
     public void run() throws IOException {
-        String randomDataTextFilePath2G="/home/vazek/Documents/internship document/random_data_text_file.txt";
-        String randomDataTextFilePath100MB="/home/vazek/Documents/internship document/random_text_100MB.txt"; //for test
+        File randomDataTextFilePath2G= new File("/home/vazek/Documents/internship_document/random_data_text_file.txt");
+
+        File randomDataTextFilePath100MB= new File("/home/vazek/Documents/internship_document/random_text_100MB.txt"); //for test
+        long fileSizeRandomDataTextFile2G = randomDataTextFilePath2G.length();
+        long fileSizeRandomDataTextFilePath100MB = (randomDataTextFilePath100MB.length()/ (1024 * 1024));
+        long bytesSent=0;
         try {
 
 
@@ -34,7 +39,16 @@ public class socketServerTest {
 
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT); // server register incoming key on status OP_ACCEPT
 
+            FileInputStream fis = new FileInputStream(randomDataTextFilePath100MB);
+            FileChannel fileChannel = fis.getChannel();
+
+
+            ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE); // allocating buffer size of 64KB chunks
             System.out.println("[SERVER] : SERVER open on port 2000");
+
+            boolean headerSent = false;
+
+
 
             while (true) {
 
@@ -62,97 +76,45 @@ public class socketServerTest {
 
                         socketChannel.register(selector, SelectionKey.OP_WRITE); // change OP_ACCEPT into OP_WRITE, server will write to incoming connections
                         System.out.println("[SERVER] : SERVER accepted connection from: "+socketChannel.getRemoteAddress());
+                        System.out.println("[SERVER] : Preparing to send file: " + randomDataTextFilePath100MB.getName() + " (" +
+                                (fileSizeRandomDataTextFilePath100MB + " MB)"));
                         System.out.println("[SERVER] : sending data");
                     }
                     else if (key.isWritable()) {
+                        SocketChannel socketChannel = (SocketChannel)key.channel();
+                        fileChannel = FileChannel.open(Paths.get(randomDataTextFilePath100MB.getPath()), StandardOpenOption.READ);
+                        fileSizeRandomDataTextFilePath100MB = fileChannel.size();
+                        //System.out.println("[SERVER] : file opened, sending file size: " + fileSizeRandomDataTextFilePath100MB);
 
-                        long startTime = System.nanoTime();
+                        ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+                        int bytesRead = fileChannel.read(byteBuffer);
 
-                        SocketChannel socketChannel = (SocketChannel) key.channel();
-                        ByteBuffer buffer;
-                        byte[] messageBytes;
-                        String message;
-                        int messageLength;
+                        if(bytesRead > 0){
+                            byteBuffer.flip();
 
-                        try{BufferedReader br = new BufferedReader(new FileReader(randomDataTextFilePath2G));
-                            while ((message = br.readLine()) != null) {
-                                messageBytes = message.getBytes();
-                                messageLength = messageBytes.length;
-                                buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);
-                                buffer.putInt(messageLength);
-                                buffer.put(messageBytes);
-                                buffer.flip();
+                            if(bytesRead == 0){
 
-                                socketChannel.write(buffer);
-
-                                if(!buffer.hasRemaining()){
-                                    linesNumber++;
-                                    //System.out.println("[SERVER] : lines: "+linesNumber);
-                                }
-                                buffer.clear();
                             }
-                        }catch (IOException e){
-                            throw new RuntimeException();
+                            byteBuffer.clear();
+                            int bytesWritten = socketChannel.write(byteBuffer);
+                            bytesSent+=bytesWritten;
+//                            System.out.println("[SERVER] : Sent: "+(bytesSent / 1024)+" kb written out of "+(fileSizeRandomDataTextFilePath100MB * 1024)+" b");
                         }
 
-                        message="END";
-                        messageBytes = message.getBytes();
-                        messageLength = messageBytes.length;
+                        if(bytesRead == -1 || bytesSent >= fileSizeRandomDataTextFilePath100MB){
+                            double percentComplete = (double) bytesSent / fileSizeRandomDataTextFilePath100MB * 100;
+                            System.out.printf("Transfer progress: %.2f%% (%d/%d bytes)%n",
+                                    percentComplete, bytesSent, fileSizeRandomDataTextFilePath100MB);
 
-                        buffer = ByteBuffer.allocate(Integer.BYTES+messageLength);// allocate the exact number of byte needed
-                        buffer.putInt(messageLength);
-                        buffer.put(messageBytes);
-                        buffer.flip();
-
-                        try {
-                            socketChannel.write(buffer);
-
-                            if(!buffer.hasRemaining()) {
-                                System.out.println("[SERVER] : send data: "+message+" to "+socketChannel.getRemoteAddress());
-                                key.interestOps(SelectionKey.OP_READ);// change write rights to read rights
-                                long endTime = System.nanoTime();
-                                long duration = endTime - startTime;
-                                double durationSeconds = duration / 1000000000.0;
-                                System.out.println("[SERVER]: Duration: "+durationSeconds+" seconds");
-                            }
-                            buffer.clear();
-
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            System.out.println("[SERVER] : data transfert complete");
+                            fileChannel.close();
+                            socketChannel.close();
                         }
 
                     }
                     else if (key.isReadable()) {
-                        SocketChannel socketChannel = (SocketChannel) key.channel();
-                        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES);
-                        int read = socketChannel.read(buffer);
+//                        SocketChannel socketChannel = (SocketChannel) key.channel();
 
-                        if(read == -1) {
-                            System.out.println("[SERVER] : connection closed");
-                            key.cancel();
-                        }
-                        else {
-                            buffer.flip();
-                            int size = buffer.getInt();
-                            buffer = ByteBuffer.allocate(size);
-                            read = socketChannel.read(buffer);
-
-                            if(read == -1) {
-                                System.out.println("[SERVER] : connection closed");
-                                key.cancel();
-                            }
-                            buffer.flip();
-                            byte[] messageBytes = new byte[buffer.remaining()];
-                            buffer.get(messageBytes);
-                            String message = new String(messageBytes);
-                            System.out.println("[SERVER] : recieved message: "+message+" to "+socketChannel.getRemoteAddress());
-
-                            System.out.println("[SERVER] : Total connections received: "+connectionCount);
-                            for(int i = 0;i<connectionCount;i++) {
-                                System.out.println("[SERVER] : connection accepted "+connections[i]);
-                            }
-
-                        }
                     }
 
                 }
