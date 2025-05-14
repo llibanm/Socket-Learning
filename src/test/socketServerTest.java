@@ -109,6 +109,7 @@ public class socketServerTest {
                             System.out.println("[SERVER] : data transfert complete");
                             fileChannel.close();
                             socketChannel.close();
+                            bytesSent=0;
                         }
 
                     }

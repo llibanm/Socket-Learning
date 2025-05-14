@@ -1,6 +1,8 @@
 package test;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -16,11 +18,16 @@ public class selectorWorkerTest implements Runnable {
     private int ID;
     private static int BUFFER_SIZE = 64 * 1024; //8kb allocated
     private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-    private static final String UPLOAD_DIRECTORY = "/home/vazek/Documents/internship_document/worker/worker.txt";
+    private static final String UPLOAD_DIRECTORY = "/home/vazek/Documents/internship_document/worker/worker100MB/worker.txt";
     private long bytesTransferred = 0;
 
     public selectorWorkerTest(int ID) {
         this.ID = ID;
+        try (FileOutputStream fos = new FileOutputStream(UPLOAD_DIRECTORY)) {
+            printMessage("File emptied successfully");
+        } catch (IOException e) {
+           e.printStackTrace();
+        }
     }
 
     public void printMessage(String message) {
