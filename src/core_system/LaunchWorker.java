@@ -1,21 +1,19 @@
 package core_system;
 
-import java.io.IOException;
-
 public class LaunchWorker {
 
-    private Worker[] workersTab;
+    private Worker100MBTransfert[] workersTab;
     private Thread[] workerThreadsTab;
 
     public LaunchWorker(int nbrWorkers) {
-        workersTab = new Worker[nbrWorkers];
+        workersTab = new Worker100MBTransfert[nbrWorkers];
         workerThreadsTab = new Thread[nbrWorkers];
     }
 
     public void start(){
         try {
             for(int i = 0; i < workersTab.length; i++){
-                workersTab[i] = new Worker(i);
+                workersTab[i] = new Worker100MBTransfert(i);
                 workerThreadsTab[i] = new Thread(workersTab[i]);
                 workerThreadsTab[i].start();
             }
@@ -27,7 +25,7 @@ public class LaunchWorker {
         }
     }
 
-    public Worker[] getWorkersTab() {
+    public Worker100MBTransfert[] getWorkersTab() {
         return workersTab;
     }
 

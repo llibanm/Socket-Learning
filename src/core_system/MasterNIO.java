@@ -4,7 +4,7 @@ package core_system;
 
 public class MasterNIO {
 
-    private MyServerSelector serverChannel;
+    private MyServerSelector100MBTransfert serverChannel;
     private Thread serverThread;
     private final int port = 2000;
 
@@ -14,7 +14,7 @@ public class MasterNIO {
     public MasterNIO() {}
 
     public void start() {
-            serverChannel = new MyServerSelector(this.port);
+            serverChannel = new MyServerSelector100MBTransfert(this.port);
             serverThread = new Thread(serverChannel);
 
 
@@ -31,7 +31,7 @@ public class MasterNIO {
         return port;
     }
 
-    public MyServerSelector getServerChannel() {
+    public MyServerSelector100MBTransfert getServerChannel() {
         return serverChannel;
     }
 
