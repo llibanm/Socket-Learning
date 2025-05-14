@@ -100,9 +100,9 @@ public class selectorWorkerTest implements Runnable {
 
 
                             printMessage("File transfert complete");
-                            System.out.printf("Received: %.2f MB%n", bytesTransferred / (1024.0 * 1024.0));
-                            System.out.printf("Transfer time: %.2f seconds%n", transferTime);
-                            System.out.printf("Transfer rate: %.2f MB/s%n", transferRate);
+                            System.out.printf("[Worker: "+ID+"] : Received: %.2f MB%n", bytesTransferred / (1024.0 * 1024.0));
+                            System.out.printf("[Worker: "+ID+"] : Transfer time: %.2f seconds%n", transferTime);
+                            System.out.printf("[Worker: "+ID+"] : Transfer rate: %.2f MB/s%n", transferRate);
                             socketChannel.close();
                             fileChannel.close();
                             selectorWorker.close();
