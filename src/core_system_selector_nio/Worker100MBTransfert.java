@@ -1,6 +1,4 @@
-package core_system;
-
-import test.selectorWorkerTest;
+package core_system_selector_nio;
 
 import java.io.*;
 import java.net.InetSocketAddress;
