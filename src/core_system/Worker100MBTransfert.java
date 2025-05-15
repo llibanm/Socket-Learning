@@ -129,15 +129,15 @@ public class Worker100MBTransfert implements Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        try {
-            selectorWorkerTest test = new selectorWorkerTest(0);
-            Thread thread = new Thread(test);
-            thread.start();
-            thread.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    public static void main(String[] args) {
+//        try {
+//            selectorWorkerTest test = new selectorWorkerTest(0);
+//            Thread thread = new Thread(test);
+//            thread.start();
+//            thread.join();
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
 }

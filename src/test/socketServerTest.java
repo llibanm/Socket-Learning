@@ -35,7 +35,7 @@ public class socketServerTest {
 
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
             serverSocketChannel.configureBlocking(false);
-            serverSocketChannel.socket().bind(new InetSocketAddress("localhost", 2000)); // server open
+            serverSocketChannel.socket().bind(new InetSocketAddress("localhost", 9999)); // server open
 
             serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT); // server register incoming key on status OP_ACCEPT
 

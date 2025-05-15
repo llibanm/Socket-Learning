@@ -16,14 +16,16 @@ import java.util.Set;
 public class selectorWorkerTest implements Runnable {
 
     private int ID;
-    private static int BUFFER_SIZE = 64 * 1024; //8kb allocated
+    private static int BUFFER_SIZE = 64 * 1024; //64kb allocated
     private ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-    private static final String UPLOAD_DIRECTORY = "/home/vazek/Documents/internship_document/worker/worker100MB/worker.txt";
+    private static final String UPLOAD_DIRECTORY = "/home/vazek/Documents/internship_document/worker/worker100MB/worker";
+    private final String UPLOAD_DIRECTORY_FINAL;
     private long bytesTransferred = 0;
 
-    public selectorWorkerTest(int ID) {
+    public selectorWorkerTest(int ID,String UPLOAD_DIRECTORY_FINAL) {
         this.ID = ID;
-        try (FileOutputStream fos = new FileOutputStream(UPLOAD_DIRECTORY)) {
+        this.UPLOAD_DIRECTORY_FINAL = UPLOAD_DIRECTORY + UPLOAD_DIRECTORY_FINAL;
+        try (FileOutputStream fos = new FileOutputStream(this.UPLOAD_DIRECTORY_FINAL)) {
             printMessage("File emptied successfully");
         } catch (IOException e) {
            e.printStackTrace();
@@ -43,22 +45,18 @@ public class selectorWorkerTest implements Runnable {
 
             printMessage("connection to server");
 
-            socketChannelWorker.connect(new InetSocketAddress("localhost",2000)); // connection to localhost server on port 2000
+            socketChannelWorker.connect(new InetSocketAddress("localhost",9999)); // connection to localhost server on port 2000
             socketChannelWorker.register(selectorWorker, SelectionKey.OP_CONNECT); //
 
-            File fileUpload = new File(UPLOAD_DIRECTORY);
+            File fileUpload = new File(UPLOAD_DIRECTORY_FINAL);
 
-            if(!fileUpload.exists()){
-                fileUpload.mkdir();
-            }
-
-            FileChannel fileChannel = FileChannel.open(Paths.get(UPLOAD_DIRECTORY),
+            FileChannel fileChannel = FileChannel.open(Paths.get(UPLOAD_DIRECTORY_FINAL),
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE);
 
 
 
-            printMessage("File receive will be on: "+UPLOAD_DIRECTORY);
+            printMessage("File receive will be on: "+UPLOAD_DIRECTORY_FINAL);
             Boolean headerDone = false;
 
             long startTime = System.currentTimeMillis();
@@ -128,15 +126,15 @@ public class selectorWorkerTest implements Runnable {
         }
     }
 
-    public static void main(String[] args) {
-        try {
-            selectorWorkerTest test = new selectorWorkerTest(0);
-            Thread thread = new Thread(test);
-            thread.start();
-            thread.join();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
+//    public static void main(String[] args) {
+//        try {
+//            selectorWorkerTest test = new selectorWorkerTest(0);
+//            Thread thread = new Thread(test);
+//            thread.start();
+//            thread.join();
+//        } catch (InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
 
 }

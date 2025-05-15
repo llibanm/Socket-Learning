@@ -13,7 +13,8 @@ public class WorkerThreadTest {
     public void start() {
         try {
             for (int i = 0; i < workers.length; i++) {
-                workers[i] = new selectorWorkerTest(i);
+                String filePathLastNumberIdentifier= String.valueOf(i+1)+".txt";
+                workers[i] = new selectorWorkerTest(i,filePathLastNumberIdentifier);
                 workerThreads[i] = new Thread(workers[i]);
                 workerThreads[i].start();
             }
