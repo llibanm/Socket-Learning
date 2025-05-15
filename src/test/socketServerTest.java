@@ -46,7 +46,9 @@ public class socketServerTest {
             ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE); // allocating buffer size of 64KB chunks
             System.out.println("[SERVER] : SERVER open on port 2000");
 
-            boolean headerSent = false;
+            boolean data_integrity_check = false;
+            boolean size_check = false;
+            boolean ack_size_check = false;
 
 
 
@@ -78,43 +80,76 @@ public class socketServerTest {
                         System.out.println("[SERVER] : SERVER accepted connection from: "+socketChannel.getRemoteAddress());
                         System.out.println("[SERVER] : Preparing to send file: " + randomDataTextFilePath100MB.getName() + " (" +
                                 (fileSizeRandomDataTextFilePath100MB + " MB)"));
-                        System.out.println("[SERVER] : sending data");
+                        System.out.println("[SERVER] : sending data size");
                     }
                     else if (key.isWritable()) {
-                        SocketChannel socketChannel = (SocketChannel)key.channel();
-                        fileChannel = FileChannel.open(Paths.get(randomDataTextFilePath100MB.getPath()), StandardOpenOption.READ);
-                        fileSizeRandomDataTextFilePath100MB = fileChannel.size();
-                        //System.out.println("[SERVER] : file opened, sending file size: " + fileSizeRandomDataTextFilePath100MB);
+                        if (size_check) {
+                            SocketChannel socketChannel = (SocketChannel)key.channel();
+                            fileChannel = FileChannel.open(Paths.get(randomDataTextFilePath100MB.getPath()), StandardOpenOption.READ);
+                            fileSizeRandomDataTextFilePath100MB = fileChannel.size();
+                            //System.out.println("[SERVER] : file opened, sending file size: " + fileSizeRandomDataTextFilePath100MB);
 
-                        ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
-                        int bytesRead = fileChannel.read(byteBuffer);
+                            ByteBuffer byteBuffer = ByteBuffer.allocate(BUFFER_SIZE);
+                            int bytesRead = fileChannel.read(byteBuffer);
 
-                        if(bytesRead > 0){
-                            byteBuffer.flip();
+                            if(bytesRead > 0){
+                                byteBuffer.flip();
 
-                            if(bytesRead == 0){
+                                if(bytesRead == 0){
 
+                                }
+                                byteBuffer.clear();
+                                int bytesWritten = socketChannel.write(byteBuffer);
+                                bytesSent+=bytesWritten;
+    //                            System.out.println("[SERVER] : Sent: "+(bytesSent / 1024)+" kb written out of "+(fileSizeRandomDataTextFilePath100MB * 1024)+" b");
                             }
-                            byteBuffer.clear();
-                            int bytesWritten = socketChannel.write(byteBuffer);
-                            bytesSent+=bytesWritten;
-//                            System.out.println("[SERVER] : Sent: "+(bytesSent / 1024)+" kb written out of "+(fileSizeRandomDataTextFilePath100MB * 1024)+" b");
+
+                            if(bytesRead == -1 || bytesSent >= fileSizeRandomDataTextFilePath100MB){
+                                double percentComplete = (double) bytesSent / fileSizeRandomDataTextFilePath100MB * 100;
+                                System.out.printf("Transfer progress: %.2f%% (%d/%d bytes)%n",
+                                        percentComplete, bytesSent, fileSizeRandomDataTextFilePath100MB);
+
+                                System.out.println("[SERVER] : data transfert complete");
+                                fileChannel.close();
+                                socketChannel.close();
+                                bytesSent=0;
+                            }
                         }
-
-                        if(bytesRead == -1 || bytesSent >= fileSizeRandomDataTextFilePath100MB){
-                            double percentComplete = (double) bytesSent / fileSizeRandomDataTextFilePath100MB * 100;
-                            System.out.printf("Transfer progress: %.2f%% (%d/%d bytes)%n",
-                                    percentComplete, bytesSent, fileSizeRandomDataTextFilePath100MB);
-
-                            System.out.println("[SERVER] : data transfert complete");
-                            fileChannel.close();
-                            socketChannel.close();
-                            bytesSent=0;
+                        else if(!size_check){// we sent beforehand the size of the incoming file
+                            SocketChannel socketChannel = (SocketChannel)key.channel();
+                            ByteBuffer byteBuffer = ByteBuffer.allocate(Long.BYTES);
+                            byteBuffer.putLong(randomDataTextFilePath100MB.length());
+                            byteBuffer.flip();
+                            while(byteBuffer.hasRemaining()){
+                                socketChannel.write(byteBuffer);
+                            }
+                           //size_check=true;
+                            key.interestOps(SelectionKey.OP_READ);
                         }
 
                     }
                     else if (key.isReadable()) {
-//                        SocketChannel socketChannel = (SocketChannel) key.channel();
+                        if (!ack_size_check) {
+                            SocketChannel socketChannel = (SocketChannel) key.channel();
+                            ByteBuffer byteBufferAck = ByteBuffer.allocate(3);
+                            int totalByteRead=0;
+                            while(totalByteRead < 3){
+                                int bytesRead = socketChannel.read(byteBufferAck);
+                                if(bytesRead == -1){
+                                    System.out.println("[SERVER] : client disconnected");
+                                    return;
+                                }
+                                totalByteRead+=bytesRead;
+                            }
+                            byteBufferAck.flip();
+                            byte[] ackBytes = new byte[3];
+                            byteBufferAck.get(ackBytes);
+                            String ackString = new String(ackBytes);
+                            if(ackString.equals("ACK")){
+                                System.out.println("[SERVER] : ACK received, will start sending data now");
+                            }
+                            key.interestOps(SelectionKey.OP_WRITE);
+                        }
 
                     }
 

@@ -57,7 +57,10 @@ public class selectorWorkerTest implements Runnable {
 
 
             printMessage("File receive will be on: "+UPLOAD_DIRECTORY_FINAL);
-            Boolean headerDone = false;
+            boolean data_integrity_check = false;
+            boolean size_check = false;
+            boolean ack_size_check = false;
+            long fileSize = 0;
 
             long startTime = System.currentTimeMillis();
 
@@ -90,31 +93,62 @@ public class selectorWorkerTest implements Runnable {
                         printMessage("READ connection from: "+secondChannelWorker.getRemoteAddress());
                     }
                     else if (key.isReadable()) {
-                        SocketChannel socketChannel = (SocketChannel) key.channel();
-                        byteBuffer.clear();
-                        int bytesRead = socketChannel.read(byteBuffer);
+                        if (size_check) {
+                            SocketChannel socketChannel = (SocketChannel) key.channel();
+                            byteBuffer.clear();
+                            int bytesRead = socketChannel.read(byteBuffer);
 
-                        if(bytesRead > 0) {
-                            byteBuffer.flip();
-                            fileChannel.write(byteBuffer);
-                            bytesTransferred += bytesRead;
-                        } else if (bytesRead == -1) {
-                            long endTime = System.currentTimeMillis();
-                            double transferTime = (endTime - startTime)/1000.0;
-                            double transferRate = (bytesTransferred/(1024*1024)/transferTime);
+                            if(bytesRead > 0) {
+                                byteBuffer.flip();
+                                fileChannel.write(byteBuffer);
+                                bytesTransferred += bytesRead;
+                            } else if (bytesRead == -1) {
+                                long endTime = System.currentTimeMillis();
+                                double transferTime = (endTime - startTime)/1000.0;
+                                double transferRate = (bytesTransferred/(1024*1024)/transferTime);
 
 
-                            printMessage("File transfert complete");
-                            System.out.printf("[Worker: "+ID+"] : Received: %.2f MB%n", bytesTransferred / (1024.0 * 1024.0));
-                            System.out.printf("[Worker: "+ID+"] : Transfer time: %.2f seconds%n", transferTime);
-                            System.out.printf("[Worker: "+ID+"] : Transfer rate: %.2f MB/s%n", transferRate);
-                            socketChannel.close();
-                            fileChannel.close();
-                            selectorWorker.close();
-                            return;
+                                printMessage("File transfert complete");
+                                System.out.printf("[Worker: "+ID+"] : Received: %.2f MB%n", bytesTransferred / (1024.0 * 1024.0));
+                                System.out.printf("[Worker: "+ID+"] : Transfer time: %.2f seconds%n", transferTime);
+                                System.out.printf("[Worker: "+ID+"] : Transfer rate: %.2f MB/s%n", transferRate);
+                                socketChannel.close();
+                                fileChannel.close();
+                                selectorWorker.close();
+                                return;
+                            }
+                        }
+                        else if(!size_check){ // we grab the size of the file
+                            SocketChannel socketChannel = (SocketChannel) key.channel();
+                            ByteBuffer byteBufferLong = ByteBuffer.allocate(Long.BYTES);
+                            int totalBytesLong = 0;
+
+                            while(totalBytesLong < Long.BYTES){
+                                int byteRead = socketChannel.read(byteBufferLong);
+                                if(byteRead == -1){
+                                    throw new IOException("connexion interrompue");
+                                }
+                                totalBytesLong += byteRead;
+                            }
+
+                            byteBufferLong.flip();
+                            fileSize = byteBufferLong.getLong();
+                            printMessage("received File size: "+fileSize);
+                            key.interestOps(SelectionKey.OP_WRITE);
+                            //size_check=true;
                         }
                     }
-                    else if (key.isWritable()) {
+                    else if (key.isWritable()) {// sending ack for receiving data
+                        if (!ack_size_check) {
+                            SocketChannel socketChannel = (SocketChannel) key.channel();
+                            ByteBuffer byteBuffer = ByteBuffer.wrap("ACK".getBytes());
+                            while(byteBuffer.hasRemaining()){
+                                socketChannel.write(byteBuffer);
+                            }
+                            ack_size_check=true;
+                            key.interestOps(SelectionKey.OP_READ);
+                            printMessage("ACK sent to server");
+                        }
 
 
                     }
@@ -126,15 +160,15 @@ public class selectorWorkerTest implements Runnable {
         }
     }
 
-//    public static void main(String[] args) {
-//        try {
-//            selectorWorkerTest test = new selectorWorkerTest(0);
-//            Thread thread = new Thread(test);
-//            thread.start();
-//            thread.join();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+    public static void main(String[] args) {
+        try {
+            selectorWorkerTest test = new selectorWorkerTest(0,"1.txt");
+            Thread thread = new Thread(test);
+            thread.start();
+            thread.join();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }
