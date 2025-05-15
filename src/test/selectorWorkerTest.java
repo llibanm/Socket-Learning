@@ -57,10 +57,10 @@ public class selectorWorkerTest implements Runnable {
 
 
             printMessage("File receive will be on: "+UPLOAD_DIRECTORY_FINAL);
-            boolean data_integrity_check = false;
-            boolean size_check = false;
-            boolean ack_size_check = false;
-            long fileSize = 0;
+//            boolean data_integrity_check = false;
+//            boolean size_check = false;
+//            boolean ack_size_check = false;
+//            long fileSize = 0;
 
             long startTime = System.currentTimeMillis();
 
@@ -93,7 +93,7 @@ public class selectorWorkerTest implements Runnable {
                         printMessage("READ connection from: "+secondChannelWorker.getRemoteAddress());
                     }
                     else if (key.isReadable()) {
-                        if (size_check) {
+                        //if (size_check) {
                             SocketChannel socketChannel = (SocketChannel) key.channel();
                             byteBuffer.clear();
                             int bytesRead = socketChannel.read(byteBuffer);
@@ -117,38 +117,38 @@ public class selectorWorkerTest implements Runnable {
                                 selectorWorker.close();
                                 return;
                             }
-                        }
-                        else if(!size_check){ // we grab the size of the file
-                            SocketChannel socketChannel = (SocketChannel) key.channel();
-                            ByteBuffer byteBufferLong = ByteBuffer.allocate(Long.BYTES);
-                            int totalBytesLong = 0;
-
-                            while(totalBytesLong < Long.BYTES){
-                                int byteRead = socketChannel.read(byteBufferLong);
-                                if(byteRead == -1){
-                                    throw new IOException("connexion interrompue");
-                                }
-                                totalBytesLong += byteRead;
-                            }
-
-                            byteBufferLong.flip();
-                            fileSize = byteBufferLong.getLong();
-                            printMessage("received File size: "+fileSize);
-                            key.interestOps(SelectionKey.OP_WRITE);
-                            //size_check=true;
-                        }
+                       // }
+//                        else if(!size_check){ // we grab the size of the file
+//                            SocketChannel socketChannel = (SocketChannel) key.channel();
+//                            ByteBuffer byteBufferLong = ByteBuffer.allocate(Long.BYTES);
+//                            int totalBytesLong = 0;
+//
+//                            while(totalBytesLong < Long.BYTES){
+//                                int byteRead = socketChannel.read(byteBufferLong);
+//                                if(byteRead == -1){
+//                                    throw new IOException("connexion interrompue");
+//                                }
+//                                totalBytesLong += byteRead;
+//                            }
+//
+//                            byteBufferLong.flip();
+//                            fileSize = byteBufferLong.getLong();
+//                            printMessage("received File size: "+fileSize);
+//                            key.interestOps(SelectionKey.OP_WRITE);
+//                            //size_check=true;
+//                        }
                     }
                     else if (key.isWritable()) {// sending ack for receiving data
-                        if (!ack_size_check) {
-                            SocketChannel socketChannel = (SocketChannel) key.channel();
-                            ByteBuffer byteBuffer = ByteBuffer.wrap("ACK".getBytes());
-                            while(byteBuffer.hasRemaining()){
-                                socketChannel.write(byteBuffer);
-                            }
-                            ack_size_check=true;
-                            key.interestOps(SelectionKey.OP_READ);
-                            printMessage("ACK sent to server");
-                        }
+//                        if (!ack_size_check) {
+//                            SocketChannel socketChannel = (SocketChannel) key.channel();
+//                            ByteBuffer byteBuffer = ByteBuffer.wrap("ACK".getBytes());
+//                            while(byteBuffer.hasRemaining()){
+//                                socketChannel.write(byteBuffer);
+//                            }
+//                            ack_size_check=true;
+//                            key.interestOps(SelectionKey.OP_READ);
+//                            printMessage("ACK sent to server");
+//                        }
 
 
                     }
