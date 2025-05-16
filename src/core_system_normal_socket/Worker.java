@@ -68,4 +68,11 @@ public class Worker implements Runnable {
     public static void printMessage(String message) {
         System.out.println("[Worker:"+workerID+"]: "+message);
     }
+
+    public static void main(String[] args) throws IOException, InterruptedException {
+        Worker worker = new Worker(new AtomicInteger(1), "1.txt");
+        Thread thread = new Thread(worker);
+        thread.start();
+        thread.join();
+    }
 }

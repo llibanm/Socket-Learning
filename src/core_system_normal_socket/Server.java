@@ -3,8 +3,12 @@ package core_system_normal_socket;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -46,10 +50,40 @@ public class Server {
 
             // Read file and distribute data to workers
 
+            try(FileChannel fileChannel = FileChannel.open(Paths.get(randomDataTextFilePath100MB.getPath()), StandardOpenOption.READ)){
+                long fileSize = fileChannel.size();
+                System.out.println("File size: " + fileSize + " bytes");
+
+                ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+
+                while (fileChannel.read(buffer) != -1) {
+                    buffer.flip();  // Prepare buffer for reading
+
+                    // Send the same data to each worker
+                    for (SocketChannel workerChannel : workersChannels) {
+                        buffer.rewind();  // Reset position to start
+                        while (buffer.hasRemaining()) {
+                            workerChannel.write(buffer);
+                        }
+                    }
+
+                    buffer.clear();  // Prepare buffer for writing
+                }
+            }
+
+            for(SocketChannel socketChannel : workersChannels){
+                socketChannel.close();
+            }
+
+            System.out.println("File distribution completed");
+
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
             executorService.shutdown();
         }
     }
+
+
+
 }
