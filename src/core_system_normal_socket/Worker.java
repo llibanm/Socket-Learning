@@ -8,32 +8,31 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Worker implements Runnable {
     private static final int BUFFER_SIZE = 8192;
+    private static final long PROGRESS_INTERVAL = 10 * 1024 * 1024;
     private static final String serverAddress="localhost";
     private static final int serverPort=8080;
     private static String writingFilePathFirst="/home/vazek/Documents/internship_document/workerSocket/worker";
-    private static String writingFilePathFinal;
-    private static int workerID;
+    private String writingFilePathFinal;
+    private int workerID;
 
-    public Worker(AtomicInteger wID,String filePathToWriteAdditional) {
-        workerID = wID.get();
-
+    public Worker( int wID,String filePathToWriteAdditional) {
+        workerID = wID;
+        System.out.println("Worker ID: "+workerID);
         writingFilePathFinal= writingFilePathFirst + filePathToWriteAdditional;
     }
 
-    @Override
+
     public void run(){
-
-
-        int port = 8080;
-
+        System.out.println("Worker ID: "+workerID);
         try {
             SocketChannel socketChannel = SocketChannel.open();
-            socketChannel.connect(new InetSocketAddress(serverAddress, port));
+            socketChannel.connect(new InetSocketAddress(serverAddress, serverPort));
             socketChannel.configureBlocking(true);
-            System.out.println("Worker " + workerID + " connected to " + serverAddress + ":" + port);
+           printMessage("Worker " + workerID + " connected to " + serverAddress + ":" + serverAddress);
 
             // TODO: Implement logic to receive data and write to file
 
@@ -44,20 +43,42 @@ public class Worker implements Runnable {
                     StandardOpenOption.TRUNCATE_EXISTING
             );
             ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-            long totalBytesReceived = 0;
+            AtomicLong totalBytesReceived = new AtomicLong(0);
+            long startTime = System.currentTimeMillis();
+            long lastProgressReport = 0;
 
             int bytesRead;
             while((bytesRead = socketChannel.read(buffer))!=-1){
                 if(bytesRead > 0){
                     buffer.flip();
                     outputFileChannel.write(buffer);
-                    totalBytesReceived += bytesRead;
+                    long currentTotal = totalBytesReceived.addAndGet(bytesRead);
                     buffer.clear();
+
+                    if (currentTotal - lastProgressReport >= PROGRESS_INTERVAL) {
+                        long elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000;
+                        double mbReceived = currentTotal / (1024.0 * 1024.0);
+                        double mbps = elapsedSeconds > 0 ? mbReceived / elapsedSeconds : 0;
+
+                        System.out.printf("[Worker:"+workerID+"]: "+" Progress: %.2f MB received (%.2f MB/s)%n \n",
+                                mbReceived, mbps);
+                        lastProgressReport = currentTotal;
+                    }
+
                 }
             }
             outputFileChannel.close();
             socketChannel.close();
-            printMessage("Received and wrote " + totalBytesReceived + " bytes to " + writingFilePathFinal);
+            System.out.println("[Worker:"+workerID+"]: "+" Received and wrote " + totalBytesReceived + " bytes to " + writingFilePathFinal+"\n");
+
+            long elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000;
+            double mbReceived = totalBytesReceived.get() / (1024.0 * 1024.0);
+            double mbps = elapsedSeconds > 0 ? mbReceived / elapsedSeconds : 0;
+
+            System.out.printf("[Worker:"+workerID+"]: "+" Worker " + workerID +" Completed: %.2f MB received and written to %s%n \n",
+                    mbReceived, writingFilePathFinal);
+            System.out.printf("[Worker:"+workerID+"]: "+" Average transfer rate: %.2f MB/s%n \n", mbps);
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -65,14 +86,14 @@ public class Worker implements Runnable {
 
     }
 
-    public static void printMessage(String message) {
+    public  void printMessage(String message) {
         System.out.println("[Worker:"+workerID+"]: "+message);
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Worker worker = new Worker(new AtomicInteger(1), "1.txt");
-        Thread thread = new Thread(worker);
-        thread.start();
-        thread.join();
-    }
+//    public static void main(String[] args) throws IOException, InterruptedException {
+//        Worker worker = new Worker(new AtomicInteger(1), "1.txt");
+//        Thread thread = new Thread(worker);
+//        thread.start();
+//        thread.join();
+//    }
 }

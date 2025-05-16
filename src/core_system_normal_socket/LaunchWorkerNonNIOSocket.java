@@ -14,17 +14,16 @@ public class LaunchWorkerNonNIOSocket {
     }
 
     public void run(){
-        for(int i=0; i<count; i++){
+        int i=0;
+        while(i<count) {
 
-            AtomicInteger workerID = new AtomicInteger(i);
-
-            workers[i] = new Worker(workerID,(i+1)+".txt");
+            workers[i] = new Worker(i,i+".txt");
             workerThreads[i] = new Thread(workers[i]);
             workerThreads[i].start();
-
+            i++;
         }
 
-        for(int i=0; i<count; i++){
+        for(i=0; i<count; i++){
             try {
                 workerThreads[i].join();
             }catch(InterruptedException e){
