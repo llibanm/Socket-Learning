@@ -76,6 +76,7 @@ public class Worker2GB implements Runnable {
             System.out.printf("[Worker:"+workerID+"]: "+" Worker " + workerID +" Completed: %.2f MB received and written to %s%n \n",
                     mbReceived, writingFilePathFinal);
             System.out.printf("[Worker:"+workerID+"]: "+" Average transfer rate: %.2f MB/s%n \n", mbps);
+            System.out.println("[Worker ID: "+workerID+"]: Execution time :"+elapsedSeconds + " seconds");
 
 
         } catch (IOException e) {
