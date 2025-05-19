@@ -1,4 +1,4 @@
-package test;
+package socketTest;
 
 public class WorkerThreadTest {
 

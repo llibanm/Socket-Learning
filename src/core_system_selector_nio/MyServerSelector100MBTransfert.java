@@ -1,6 +1,6 @@
 package core_system_selector_nio;
 
-import test.socketServerTest;
+import socketTest.socketServerTest;
 
 import java.io.File;
 import java.io.FileInputStream;

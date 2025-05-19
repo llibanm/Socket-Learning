@@ -1,11 +1,7 @@
-package test;
+package socketTest;
 
-import java.awt.*;
 import java.io.*;
-import java.math.BigInteger;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.file.Paths;
