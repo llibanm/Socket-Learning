@@ -1,5 +1,12 @@
 package core_system_tree_transfer;
 
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 public class TreeBroadcastServer {
 
     private static final int SERVER_PORT = 9000;
@@ -13,14 +20,14 @@ public class TreeBroadcastServer {
 
         try {
 
-
+            TreeBroadcastServer server = new TreeBroadcastServer();
             System.out.println("Starting workers...");
-            //startWorker();
+            startWorkers();
 
             Thread.sleep(1000);
 
 
-            //perfomTreeBroadcast(FILE_100MB)
+            server.performTreeBroadcast(FILE_100MB);
 
             System.out.println("Broadcasting done. Shutting down...");
             System.exit(0);
@@ -33,10 +40,73 @@ public class TreeBroadcastServer {
         System.out.println("Starting workers...");
         for (int i = 0; i < WORKER_PORTS.length; i++) {
             final int workerIndex = i;
-//            new Thread(() -> {
-//
-//            })
+            new Thread(() -> {
+                try {
+                    WorkerNode worker = new WorkerNode(workerIndex,WORKER_PORTS[workerIndex]);
+                    worker.start();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+
         }
     };
+
+    public void performTreeBroadcast(String fileName) {
+        System.out.println("\n--- Starting Tree-based Broadcast for " + fileName + " ---");
+        long startTime = System.currentTimeMillis();
+
+
+        sendFileToWorker(0,fileName);
+
+        waitForCompletion();
+
+        long endTime = System.currentTimeMillis();
+        double secondes = (endTime - startTime) / 1000.0;
+        System.out.printf("Temps total de diffusion: %.3f secondes\n", secondes);
+    }
+
+    public void sendFileToWorker(int workerIndex, String fileName) {
+        System.out.println("Server sending file to Worker " + workerIndex);
+
+        try(Socket socket =  new Socket("localhost",  WORKER_PORTS[workerIndex])) {
+
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+            dos.writeUTF(fileName);
+
+            dos.writeInt(workerIndex);
+
+            File file = new File(fileName);
+            if(file.exists()){
+                System.out.println("File exists!");
+            }
+            dos.writeLong(file.length());
+
+            try(FileInputStream fis = new FileInputStream(file)) {
+                byte[] bytes = new byte[(int)file.length()];
+                int bytesRead=0;
+
+                while((bytesRead = fis.read(bytes)) != -1) {
+                    dos.write(bytes, 0, bytesRead);
+                }
+                dos.flush();
+            }
+            System.out.println("File sent to Worker " + workerIndex);
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void waitForCompletion(){
+        try {
+            // Wait for workers to complete their transfers
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
 }
