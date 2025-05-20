@@ -1,11 +1,10 @@
 package core_system_tree_transfer;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class TreeBroadcastServer {
 
@@ -14,6 +13,7 @@ public class TreeBroadcastServer {
     private static final String FILE_100MB = "/home/vazek/Documents/internship_document/random_text_100MB.txt";
     private static final String FILE_2GB = "/home/vazek/Documents/internship_document/random_data_text_file.txt";
     private static final long MB = 1024 * 1024;
+    private static final int BUFFER_SIZE =16 * 1024 * 1024; //16MB
 
     public static void main(String[] args) {
 
@@ -27,7 +27,7 @@ public class TreeBroadcastServer {
             Thread.sleep(1000);
 
 
-            server.performTreeBroadcast(FILE_100MB);
+            server.performTreeBroadcast(FILE_2GB);
 
             System.out.println("Broadcasting done. Shutting down...");
             System.exit(0);
@@ -70,8 +70,11 @@ public class TreeBroadcastServer {
         System.out.println("Server sending file to Worker " + workerIndex);
 
         try(Socket socket =  new Socket("localhost",  WORKER_PORTS[workerIndex])) {
+            socket.setSendBufferSize(BUFFER_SIZE);
+            socket.setTcpNoDelay(true);// pas de regroupement de paquet
+            socket.setKeepAlive(true);
 
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream(), BUFFER_SIZE));
 
             dos.writeUTF(fileName);
 
@@ -84,13 +87,25 @@ public class TreeBroadcastServer {
             dos.writeLong(file.length());
 
             try(FileInputStream fis = new FileInputStream(file)) {
-                byte[] bytes = new byte[(int)file.length()];
-                int bytesRead=0;
 
-                while((bytesRead = fis.read(bytes)) != -1) {
-                    dos.write(bytes, 0, bytesRead);
+                byte[] buffer = new byte[BUFFER_SIZE];
+                long totalBytesSent = 0;
+                long reportInterval = file.length()/10;
+                long nextReport = reportInterval;
+                long startTime = System.currentTimeMillis();
+
+
+                int bytesRead = 0;
+                while((bytesRead = fis.read()) != -1) {
+                    try {
+                        dos.write(buffer,0,bytesRead);
+                    } catch (IOException e) {
+                        System.out.println("Writing file to Workers done.");
+                        break;
+                    }
+                    totalBytesSent += bytesRead;
                 }
-                dos.flush();
+
             }
             System.out.println("File sent to Worker " + workerIndex);
         } catch (UnknownHostException e) {
@@ -103,7 +118,9 @@ public class TreeBroadcastServer {
     private void waitForCompletion(){
         try {
             // Wait for workers to complete their transfers
-            Thread.sleep(3000);
+            int minutes = 1;
+            int seconds = minutes * 5;
+            Thread.sleep(seconds*1000); //60 sec
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

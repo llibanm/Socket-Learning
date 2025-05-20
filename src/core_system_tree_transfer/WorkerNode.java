@@ -10,7 +10,7 @@ public class WorkerNode {
     private static final int[] WORKER_PORTS = {9001,9002,9003};
     private  int nodeID;
     private  int port;
-    private static final int BUFFER_SIZE = 8 * 1024; //paquets de 8KB par envoi
+    private static final int BUFFER_SIZE = 16 * 1024 * 1024; //paquets de 16MB par envoi
     private static final ConcurrentHashMap<String,Long> receivedFiles = new ConcurrentHashMap<>();
     private boolean running;
     private ServerSocket serverSocket;
@@ -29,6 +29,8 @@ public class WorkerNode {
         try {
             while(true) {
                 try (Socket socket = serverSocket.accept()) {
+                    socket.setReceiveBufferSize(BUFFER_SIZE);
+                    socket.setTcpNoDelay(true);
                     handleClient(socket);
                 }catch (Exception e) {
                     if (this.running) {
@@ -46,13 +48,25 @@ public class WorkerNode {
     }
 
     public void stop() {
-        this.running = false;
-        try {
-            if(!serverSocket.isClosed()) {
-                serverSocket.close();
+        if (nodeID != 0) {
+
+
+            try {
+                Thread.sleep(20000);
+                this.running = false;
+                if(!serverSocket.isClosed()) {
+                    serverSocket.close();
+                }
+            }catch (IOException | InterruptedException e){
+                e.printStackTrace();
             }
-        }catch (IOException e){
-            e.printStackTrace();
+        }
+        else{
+            try {
+                Thread.sleep(20000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -79,6 +93,8 @@ public class WorkerNode {
             byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             long totalBytesRead = 0;
+            long reportInterval = fileSize / 10;
+            long nextReportInterval = reportInterval;
             boolean complete = false;
             while(totalBytesRead < fileSize && !complete) {
                 bytesRead = dis.read(buffer,0,(int)Math.min(BUFFER_SIZE, fileSize-totalBytesRead));
@@ -90,6 +106,7 @@ public class WorkerNode {
                 fos.write(buffer,0,bytesRead);
                 totalBytesRead += bytesRead;
             }
+            fos.flush();
         }
 
         long endTime = System.currentTimeMillis();
