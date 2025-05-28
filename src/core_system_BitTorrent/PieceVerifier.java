@@ -69,7 +69,7 @@ public class PieceVerifier {
         System.out.println("Pièce reçue - Index: " + receivedIndex +
                 ", Offset: " + offset + ", Taille: " + dataLength);
 
-        // Si c'est le début de la pièce, vérifier l'intégrité
+        /// Si c'est le début de la pièce, vérifier l'intégrité
         if (offset == 0 && verifyPiece(receivedIndex, pieceData)) {
             completedPieces.put(receivedIndex, pieceData);
             return true;
