@@ -8,52 +8,52 @@ import java.util.List;
 
 public class TorrentFile {
 
-    private String announce;
-    private String name;
-    private long length;
-    private final int  pieceLength = 256 * 1024; // 256 kb
-    private List<byte[]> pieceHashes; // HASH SHA 1 de la piece
+    private String fileName; // Nom du fichier à télécharger
+    private long fileSize;  // Taille totale du fichier
+    private int pieceLength; // Taille de chaque morceau (généralement 256KB)
+    private List<byte[]> pieceHashes;  // Hash SHA-1 de chaque morceau pour vérification
+    private List<String> trackers; // Liste des serveurs trackers
+    private byte[] infoHash;  // Hash unique qui identifie ce torrent
 
-    public TorrentFile(String announce, String name, long length) {
-        this.announce = announce;
-        this.name = name;
-        this.length = length;
+    public TorrentFile(String fileName, long fileSize, int pieceLength) {
+        this.fileName = fileName;
+        this.fileSize = fileSize;
+        this.pieceLength = pieceLength;
         this.pieceHashes = new ArrayList<>();
+        this.trackers = new ArrayList<>();
+
+        generateInfoHash();
+
+        System.out.println("📁 TorrentFile créé:");
+        System.out.println("   - Fichier: " + fileName);
+        System.out.println("   - Taille: " + fileSize + " bytes");
+        System.out.println("   - Taille par morceau: " + pieceLength + " bytes");
+        System.out.println("   - Nombre de morceaux: " + getTotalPieces());
     }
 
-
-    public void generatePieceHashes(byte[] fileData) {
+    public void generateInfoHash() {
         try {
-            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
-            int numberOfPieces = (int)Math.ceil((double)fileData.length / pieceLength);
-            //permet de sensibiliser la perte de donnée
-
-            for (int i = 0; i < numberOfPieces; i++) {
-                int start = i * pieceLength;
-                int end = Math.min(start + pieceLength, fileData.length);
-
-                byte[] piece = Arrays.copyOfRange(fileData, start, end);
-                byte[] hash = sha1.digest(piece);
-                pieceHashes.add(hash);
-
-                System.out.println("Pièce " + i + " - Hash: " + bytesToHex(hash));
-            }
-
-        }catch (NoSuchAlgorithmException e){
-            e.printStackTrace();
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            this.infoHash = md.digest(fileName.getBytes());
+        } catch (Exception e) {
+            this.infoHash = fileName.getBytes();
         }
-
     }
 
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte b : bytes) {
-            result.append(String.format("%02x", b));
-        }
-        return result.toString();
+    // Calcule le nombre total de morceaux nécessaires
+    public int getTotalPieces() {
+        return (int) Math.ceil((double) fileSize / pieceLength);
     }
 
-    public String getAnnounce() { return announce; }
-    public List<byte[]> getPieceHashes() { return pieceHashes; }
+    public String getFileName() { return fileName; }
+    public long getFileSize() { return fileSize; }
     public int getPieceLength() { return pieceLength; }
+    public byte[] getInfoHash() { return infoHash; }
+    public List<String> getTrackers() { return trackers; }
+
+
+    public void addTracker(String trackerUrl) {
+        trackers.add(trackerUrl);
+        System.out.println("🔗 Tracker ajouté: " + trackerUrl);
+    }
 }
