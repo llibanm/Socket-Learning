@@ -3,6 +3,10 @@ package core_system_BitTorrent;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 public class BitTorrentClient {
     private TorrentFile torrent; // Fichier torrent à télécharger
@@ -15,6 +19,11 @@ public class BitTorrentClient {
 
     private TrackerClient trackerClient;
 
+    private HandshakeManager handshakeManager;
+    private ExecutorService connectionPool;
+    private static final int MAX_CONCURRENT_CONNECTIONS = 5;
+    private static final int CONNECTION_TIMEOUT_MILLIS = 10000; //10s
+
     public BitTorrentClient(TorrentFile torrent,int uploadPort) {
         this.torrent = torrent;
         this.peers = new ArrayList<Peer>();
@@ -25,6 +34,8 @@ public class BitTorrentClient {
         this.isDownloading = false;
 
         this.trackerClient = new TrackerClient(torrent,clientId,uploadPort);
+        this.handshakeManager = new HandshakeManager(torrent,clientId);
+        this.connectionPool = Executors.newFixedThreadPool(MAX_CONCURRENT_CONNECTIONS);
 
         initializePieces();
 
@@ -71,6 +82,80 @@ public class BitTorrentClient {
         }
     }
 
+    public void connectToPeer() {
+        System.out.println("\n🤝 === CONNEXION AUX PEERS ===");
+
+        if(peers.isEmpty()){
+            System.out.println("⚠️ Aucun peer disponible pour connexion !");
+            return;
+        }
+
+        List<Peer> peersToConnect = new ArrayList<>(peers);
+        peersToConnect.sort((p1,p2) -> p1.getPeerId().compareTo(p2.getPeerId()));
+
+        int maxConnections = Math.min(MAX_CONCURRENT_CONNECTIONS,peersToConnect.size());
+        System.out.println("🎯 Tentative de connexion à " + maxConnections + " peers...");
+
+        List<Future<Boolean>> connectionTasks = new ArrayList<>();
+
+        for(int i=0; i<maxConnections; i++) {
+            final Peer peer = peersToConnect.get(i);
+
+            Future<Boolean> task = connectionPool.submit(() -> {
+                return connectAndHandshakeWithPeer(peer);
+            });
+            connectionTasks.add(task);
+        }
+
+        int successfulConnections = 0;
+        for(int i=0; i<connectionTasks.size(); i++) {
+            try {
+                Boolean success = connectionTasks.get(i).get(15, TimeUnit.SECONDS);
+                if(success) {
+                    successfulConnections++;
+                }
+            }catch (Exception e) {
+                System.out.println("⏰ Timeout ou erreur pour connexion " + (i+1) + ": " + e.getMessage());
+            }
+        }
+
+        System.out.println("\n✅ Résultat des connexions:");
+        System.out.println("   - Connexions réussies: " + successfulConnections + "/" + maxConnections);
+        System.out.println("   - Peers connectés: " + getConnectedPeers().size());
+
+    }
+
+    private boolean connectAndHandshakeWithPeer(Peer peer) {
+        try {
+            System.out.println("🔌 Connexion à " + peer.getPeerId() + " (" + peer.getIpAddress() + ":" + peer.getPort() + ")");
+
+            // Étape 1: Connexion TCP
+                if (!peer.connect(CONNECTION_TIMEOUT_MILLIS)) {
+                return false;
+            }
+
+            // Étape 2: Handshake BitTorrent
+            if (!handshakeManager.performHandshake(peer)) {
+                peer.disconnect();
+                return false;
+            }
+
+            System.out.println("🎉 Peer " + peer.getPeerId() + " connecté avec succès !");
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("❌ Erreur connexion " + peer.getPeerId() + ": " + e.getMessage());
+            peer.disconnect();
+            return false;
+        }
+    }
+
+    public List<Peer> getConnectedPeers() {
+        return peers.stream()
+                .filter(p -> p.isConnected() && p.isHandshakeCompleted())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     // Affiche l'état actuel du client
     public void displayStatus() {
         System.out.println("\n" + "=".repeat(50));
@@ -92,5 +177,6 @@ public class BitTorrentClient {
     public TorrentFile getTorrent() { return torrent; }
     public List<Peer> getPeers() { return peers; }
     public boolean isDownloading() { return isDownloading; }
-    public int getUploadPort() {return uploadPort;}
+    public TrackerClient getTrackerClient() { return trackerClient; }
+    public HandshakeManager getHandshakeManager() { return handshakeManager; }
 }
