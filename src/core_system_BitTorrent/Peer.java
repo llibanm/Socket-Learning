@@ -11,6 +11,9 @@ public class Peer {
     private Boolean isConnected; // État de connexion
     private long lastSeen; // Dernière fois qu'on a eu des nouvelles
 
+    private boolean isSeeder; // True si le peer a le fichier complet
+    private long uploaded; // Bytes uploadés par ce peer
+    private long downloaded; // Bytes téléchargés par ce peer
     public Peer(String ipAddress, int port,String peerId, int totalPieces) {
         this.ipAddress = ipAddress;
         this.port = port;
@@ -19,8 +22,13 @@ public class Peer {
         this.isConnected = false;
         this.lastSeen = System.currentTimeMillis();
 
+        this.isSeeder = false;
+        this.uploaded = 0;
+        this.downloaded = 0;
 
-        System.out.println("👤 Nouveau peer: " + peerId + " (" + ipAddress + ":" + port + ")");
+
+        System.out.println("👤 Nouveau peer: " + peerId + " (" + ipAddress + ":" + port + ")" +
+                (isSeeder ? " [SEEDER]" : " [LEECHER]"));
     }
 
     // Marque un morceau comme disponible chez ce peer
@@ -44,4 +52,8 @@ public class Peer {
     public BitSet getAvailablePieces() { return availablePieces; }
     public boolean isConnected() { return isConnected; }
     public void setConnected(boolean connected) { this.isConnected = connected; }
+    public boolean isSeeder() { return isSeeder; }
+    public void setSeeder(boolean seeder) { this.isSeeder = seeder; }
+    public long getUploaded() { return uploaded; }
+    public long getDownloaded() { return downloaded; }
 }

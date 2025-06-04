@@ -13,6 +13,8 @@ public class BitTorrentClient {
     private boolean isDownloading;  // État du téléchargement
     private int uploadPort; // Port pour les connexions entrantes
 
+    private TrackerClient trackerClient;
+
     public BitTorrentClient(TorrentFile torrent,int uploadPort) {
         this.torrent = torrent;
         this.peers = new ArrayList<Peer>();
@@ -21,6 +23,15 @@ public class BitTorrentClient {
         this.clientId = generateClientId();
         this.uploadPort = uploadPort;
         this.isDownloading = false;
+
+        this.trackerClient = new TrackerClient(torrent,clientId,uploadPort);
+
+        initializePieces();
+
+        System.out.println("\n🚀 Client BitTorrent initialisé:");
+        System.out.println("   - ID Client: " + clientId);
+        System.out.println("   - Port d'écoute: " + uploadPort);
+        System.out.println("   - Morceaux à télécharger: " + torrent.getTotalPieces());
     }
 
     private String generateClientId() {
@@ -50,6 +61,16 @@ public class BitTorrentClient {
 
     }
 
+    public void discoverPeers() {
+        System.out.println("\n🔍 === DÉCOUVERTE DES PEERS ===");
+
+        List<String> trackers = torrent.getTrackers();
+        if(trackers.isEmpty()) {
+            System.out.println("⚠️ Aucun tracker configuré !");
+            return;
+        }
+    }
+
     // Affiche l'état actuel du client
     public void displayStatus() {
         System.out.println("\n" + "=".repeat(50));
@@ -71,5 +92,5 @@ public class BitTorrentClient {
     public TorrentFile getTorrent() { return torrent; }
     public List<Peer> getPeers() { return peers; }
     public boolean isDownloading() { return isDownloading; }
-
+    public int getUploadPort() {return uploadPort;}
 }
